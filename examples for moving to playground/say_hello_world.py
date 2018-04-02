@@ -16,6 +16,7 @@ def greeting(name="playground/data/names/*.txt",
   with open(salutation, 'r') as file:
     the_salutation = file.readlines()[0].rstrip('\n')
 
+  # TODO: in a sense, this line is all the code that should be here:
   result = "{} {}!".format(the_salutation, the_name)
 
   # TODO: defaults for returning values? lucid.io.save on return value???
