@@ -1,11 +1,11 @@
-from flow import task
+from flow.task import task
 
 import logging
 from os.path import splitext, basename, dirname
 from os import makedirs
 
 @task("playground/data/greetings/hello-{name}-{salutation}.txt")
-def greeting(name="playground/data/names/*.txt",
+def greeting(name={'name': "playground/data/names/*.txt"},
              salutation="playground/data/salutations/*.txt"):
 
   # TODO: defaults for getting the contents of files instead? lucid.io.load???

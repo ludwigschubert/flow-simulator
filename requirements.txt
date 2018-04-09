@@ -1,2 +1,7 @@
 watchdog
 decorator
+pytest
+pytest-watch
+pytest-testmon
+pytest-mock
+mypy
