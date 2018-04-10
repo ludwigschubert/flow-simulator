@@ -13,7 +13,7 @@ from functools import partial
 
 tasks_glob = 'playground/tasks/*.py'
 
-# {src_path} -> ()
+
 def handle_task(event):
   logging.info('handling file event: %s', event.src_path)
   logging.debug("event %s", event)

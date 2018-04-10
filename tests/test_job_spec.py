@@ -38,7 +38,7 @@ def test_deserialization_simple():
   new_spec = JobSpec.from_json(json)
   assert new_spec is not None
   # check that arrays get converted back to tuples:
-  assert new_spec.inputs == [("name","Ludwig")]
+  assert new_spec.inputs == [("name", "Ludwig")]
 
 def test_execute(simple_job_spec, mocker):
   file_stub = mocker.MagicMock()
@@ -46,5 +46,5 @@ def test_execute(simple_job_spec, mocker):
 
   simple_job_spec.execute()
 
-  mocked_open.assert_called_once_with(simple_job_spec.output, 'w')
+  mocked_open.assert_called_once_with(simple_job_spec.output)
   file_stub.__enter__().write.assert_called_once_with(simple_job_spec.result)

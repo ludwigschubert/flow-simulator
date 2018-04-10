@@ -1,6 +1,6 @@
 import uuid
 import logging
-from typing import Dict
+from typing import Dict, Tuple, Any
 # from collections import OrderedDict
 
 import imp
@@ -26,12 +26,12 @@ class TaskParser(object):
     task_module = imp.load_source(task_module_name, task_path)
 
     try:
-      self.main_function = task_module.main
+      self.main_function = task_module.main # type: ignore
     except AttributeError:
       raise ValueError("Specified task ('{}') does not contain required method 'main'.".format(task_path))
 
     try:
-      self.output_object = task_module.output
+      self.output_object = task_module.output # type: ignore
     except AttributeError:
       raise ValueError("Specified task ('{}') does not contain required attribute 'output'.".format(task_path))
 
@@ -46,12 +46,12 @@ class TaskParser(object):
 
     logging.debug("Successfully parsed task '{}'".format(task_path))
 
-  def to_task_spec():
+  def to_task_spec(self) -> TaskSpec:
     return TaskSpec(self.input_objects, self.output_object, self.task_path)
 
 
-def isinput(tuple):
-  name, _ = tuple
+def isinput(tuple: Tuple[str, object]) -> bool:
+  name = tuple[0]
   is_builtin = name.startswith('__')
   is_output = name == OUTPUT_NAME
   is_main = name == MAIN_NAME

@@ -10,11 +10,11 @@ class JobSpec(object):
   """Serializable data object describing which task to execute and its inputs."""
 
   def __init__(self, inputs: List[Tuple[str, Any]], output: Any, path: str) -> None:
-    self.inputs = inputs # type: MutableMapping[str, str]
+    self.inputs = inputs
     self.output = output
     self.path = path
 
-  def __eq__(self, other):
+  def __eq__(self, other: object) -> bool:
     logging.warn("Other __dict__: %s", other.__dict__)
     logging.warn("Own __dict__: %s", self.__dict__)
     if isinstance(self, other.__class__):
@@ -22,7 +22,7 @@ class JobSpec(object):
     return False
 
   @classmethod
-  def value_for_input(cls, input: Any):
+  def value_for_input(cls, input: object) -> object:
     if isinstance(input, str):
       # TODO: load values, etc?
       logging.warn("TODO: got string; we should parse and check for path.")
@@ -34,23 +34,25 @@ class JobSpec(object):
       raise NotImplemented
 
   @classmethod
-  def value_for_output(cls, output: Any):
+  def value_for_output(cls, output: object) -> object:
     if isinstance(output, str):
       return output
     else:
       raise NotImplemented
 
   @classmethod
-  def save_result_for_output(cls, result: Any, output: Any):
+  def save_result_for_output(cls, result: object, output: object) -> None:
     if result is None:
       logging.info("Task did not return a result; maybe it's just saving the result itself?")
       return
     if isinstance(output, str):
       # assume path for now
-      with open_file(output, 'w') as output_file:
-        output_file.write(result)
-      # TODO: loaders and savers? Assume serialized already for now.
-
+      if isinstance(result, str):
+        with open_file(output) as output_file:
+          output_file.write(result)
+        # TODO: loaders and savers? Assume serialized already for now.
+      else:
+        raise NotImplemented
     else:
       raise NotImplemented
 
@@ -66,7 +68,7 @@ class JobSpec(object):
     output_value = self.value_for_output(self.output)
     setattr(module, 'output', output_value)
     # execute and save result
-    self.result = module.main()
+    self.result = module.main() # type: ignore
     self.save_result_for_output(self.result, self.output)
     # unload module
     # TODO: test if that actually allows us to call this method multiple times!
@@ -76,10 +78,10 @@ class JobSpec(object):
   # Serialization
 
   @classmethod
-  def from_json(cls, json):
+  def from_json(cls, json: str):
     dict = JSON.loads(json)
     dict['inputs'] = [(key, value) for [key, value] in dict['inputs']]
     return JobSpec(**dict)
 
-  def to_json(self):
+  def to_json(self) -> str:
     return JSON.dumps(self.__dict__)
