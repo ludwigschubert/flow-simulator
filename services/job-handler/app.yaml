@@ -1,0 +1,12 @@
+service: job-handler
+runtime: python
+threadsafe: yes
+env: flex
+entrypoint: gunicorn -b :$PORT main:app
+
+runtime_config:
+  python_version: 3
+
+handlers:
+- url: /handle_job
+  script: main.app

@@ -3,5 +3,5 @@
     [ "name","Ludwig"]
   ],
   "output": "salutations/hello-ludwig.txt",
-  "path": "some/file/path.py"
+  "task_path": "some/file/path.py"
 }

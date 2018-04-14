@@ -1,5 +1,5 @@
-x = [1,2,3]
-name = "tests/fixtures/data/names/*.txt"
+# x = [1,2,3]
+name = "tests/fixtures/data/names/{name}.txt"
 output = "tests/fixtures/data/salutations/{name}-{x}.txt"
 
 def main():

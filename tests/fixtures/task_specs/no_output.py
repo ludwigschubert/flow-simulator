@@ -1,5 +1,5 @@
 x = [1,2,3]
-name = "/names/*.txt"
+name = "/names/{name}.txt"
 
 def main():
     import tensorflow as tf

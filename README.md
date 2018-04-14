@@ -1,24 +1,26 @@
-# flow-simulator
+# data/file/tensor/flow/ci-for-research/auto-running ~make~python files
 
 "Those Who Do Not Learn make Are Doomed To Reimplement It."
 
 ## Overview
 
-This is a local-filesystem simulator of flow, the CI system for research 
+This is a local-filesystem simulator of flow, the CI system for research
 I'm trying to build for Chris et al.
 Earlier today I was wasting too much time on Google Cloud APIs, and I wanted
 to have a functioning version of the outline Katherine helped me write.
 
 There is a lot of map/territory confusion in the naming conventions of this code.
-Eventually I'd like things to be properly called 'task_spec' if its a specification, 
+Eventually I'd like things to be properly called 'task_spec' if its a specification,
 rather than 'task'.
 
 ## Current task_spec syntax
 
 ```python
-@task("playground/data/greetings/hello-{name}-{salutation}.txt")
-def greeting(name="playground/data/names/*.txt",
-             salutation="playground/data/salutations/*.txt"):
+x = [1,2,3]
+name = "tests/fixtures/data/names/*.txt"
+output = "tests/fixtures/data/salutations/{name}-{x}.txt"
+def main():
+  return "Hello {name} for the {x} time!".format(name=name, x=x)
 ```
 
 ## Setup
@@ -33,8 +35,10 @@ pip install -r requirements.txt
 
 ## Run
 
+Slightly awkward because the simulator depends on flow, but not explicitly.
+
 ```bash
-python simulator/main.py
+PYTHONPATH='.' python simulator/main.py
 ```
 
 Start by moving `say_hello_world.py` from `playground` to `playground/tasks`.

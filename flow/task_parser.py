@@ -1,17 +1,22 @@
 import uuid
 import logging
+from os.path import basename
 from typing import Dict, Tuple, Any
 # from collections import OrderedDict
 
-import imp
 import inspect
 
-from flow.io_adapter import exists
+from flow.io_adapter import io
 from flow.task_spec import TaskSpec
+from flow.dynamic_import import import_module_from_local_source
 
 
 MAIN_NAME = 'main'
 OUTPUT_NAME = 'output'
+
+
+class TaskParseError(Exception):
+  pass
 
 
 class TaskParser(object):
@@ -19,26 +24,25 @@ class TaskParser(object):
 
   def __init__(self, task_path: str) -> None:
     if task_path is None:
-      raise ValueError("task_path can not be None.")
-    if not exists(task_path):
-      raise ValueError("task_path ('{}') does not exist".format(task_path))
-    task_module_name = 'task_specification_' + str(uuid.uuid4())
-    task_module = imp.load_source(task_module_name, task_path)
+      raise TaskParseError("task_path can not be None.")
+    # TODO: think of better verification strategy?
+
+    task_module = import_module_from_local_source(task_path)
 
     try:
       self.main_function = task_module.main # type: ignore
     except AttributeError:
-      raise ValueError("Specified task ('{}') does not contain required method 'main'.".format(task_path))
+      raise TaskParseError("Specified task ('{}') does not contain required method 'main'.".format(task_path))
 
     try:
       self.output_object = task_module.output # type: ignore
     except AttributeError:
-      raise ValueError("Specified task ('{}') does not contain required attribute 'output'.".format(task_path))
+      raise TaskParseError("Specified task ('{}') does not contain required attribute 'output'.".format(task_path))
 
     members = inspect.getmembers(task_module)
     inputs = list(filter(isinput, members))
     if not inputs:
-      raise ValueError("Specified task ('{}') does not contain any inputs.".format(task_path))
+      raise TaskParseError("Specified task ('{}') does not contain any inputs.".format(task_path))
     else:
       self.input_objects = inputs
 
@@ -46,8 +50,9 @@ class TaskParser(object):
 
     logging.debug("Successfully parsed task '{}'".format(task_path))
 
-  def to_task_spec(self) -> TaskSpec:
-    return TaskSpec(self.input_objects, self.output_object, self.task_path)
+  def to_spec(self) -> TaskSpec:
+    name = basename(self.task_path)
+    return TaskSpec(self.input_objects, self.output_object, self.task_path, name)
 
 
 def isinput(tuple: Tuple[str, object]) -> bool:

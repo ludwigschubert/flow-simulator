@@ -4,14 +4,13 @@ import os
 from pytest import raises
 from unittest.mock import patch
 from flow.job_spec import JobSpec
-from flow.io_adapter import exists
 import flow
 from io import StringIO
 
 simple_job = {
   'inputs': [('name', 'Ludwig'), ('x', 2)],
   'output': 'tests/fixtures/data/salutations/Ludwig-2.txt',
-  'path': 'tests/fixtures/task_specs/simple.py'
+  'task_path': 'tests/fixtures/task_specs/simple.py'
 }
 
 @pytest.fixture
@@ -42,9 +41,9 @@ def test_deserialization_simple():
 
 def test_execute(simple_job_spec, mocker):
   file_stub = mocker.MagicMock()
-  mocked_open = mocker.patch('flow.job_spec.open_file', return_value=file_stub)
+  mocked_open = mocker.patch('flow.job_spec.io.writing', return_value=file_stub)
 
   simple_job_spec.execute()
 
   mocked_open.assert_called_once_with(simple_job_spec.output)
-  file_stub.__enter__().write.assert_called_once_with(simple_job_spec.result)
+  file_stub.__enter__().write.assert_called_once_with(simple_job_spec.result.encode())

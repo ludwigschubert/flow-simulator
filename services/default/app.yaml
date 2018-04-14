@@ -1,0 +1,9 @@
+service: default
+runtime: python27
+threadsafe: yes
+entrypoint: gunicorn -b :$PORT main:app
+
+handlers:
+- url: /test
+  script: main.app
+  login: admin
