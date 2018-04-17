@@ -1,6 +1,7 @@
 # Libraries
 watchdog
 decorator
+lucid # for io - should be spun off?
 
 # Google API
 google-api-python-client==1.6.5

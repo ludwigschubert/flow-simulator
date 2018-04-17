@@ -39,6 +39,7 @@ Slightly awkward because the simulator depends on flow, but not explicitly.
 
 ```bash
 PYTHONPATH='.' python simulator/main.py
+USE_LOCAL_QUEUE=FALSE USE_LOCAL_FS=TRUE PYTHONPATH='.' python simulator/main.py
 ```
 
 Start by moving `say_hello_world.py` from `playground` to `playground/tasks`.

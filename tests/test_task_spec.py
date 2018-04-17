@@ -1,4 +1,5 @@
 import pytest
+from pytest import raises
 
 from flow.task_spec import *
 
@@ -81,12 +82,6 @@ def test_input_names(input_spec):
 def test_output_simple(output_spec):
   assert output_spec
 
-# def test_output_fail_verify(output_spec):
-#   assert output_spec.verify_placeholders(['will-fail']) is False
-#
-# def test_output_succeed_verify(output_spec):
-#   assert output_spec.verify_placeholders(['glob']) is True
-
 
 # Test TaskSpec
 
@@ -95,4 +90,22 @@ def test_simple_task(task_spec):
   assert isinstance(task_spec.input_specs, List)
   assert isinstance(task_spec.input_specs[0], InputSpec)
   assert isinstance(task_spec.output_spec, OutputSpec)
-  assert isinstance(task_spec.path, str)
+  assert isinstance(task_spec.src_path, str)
+
+def test_missing_input():
+  simple_inputs = [('one', 'path/{one}.txt')]
+  simple_output = "some/{one}/{two}.txt"
+  with raises(ValueError):
+    TaskSpec(simple_inputs, simple_output, "a_path", "name")
+
+def test_missing_output():
+  simple_inputs = [('one', 'path/{one}.txt'), ('two', 'different/{two}.txt')]
+  simple_output = "some/{one}/fixed.txt"
+  with raises(ValueError):
+    TaskSpec(simple_inputs, simple_output, "a_path", "name")
+
+def test_mismatch_input_output():
+  simple_inputs = [('one', 'path/{one}.txt')]
+  simple_output = "some/{two}/fixed.txt"
+  with raises(ValueError):
+    TaskSpec(simple_inputs, simple_output, "a_path", "name")

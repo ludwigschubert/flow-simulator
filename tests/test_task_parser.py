@@ -1,4 +1,5 @@
 from pytest import raises
+import logging
 from flow.task_parser import TaskParser, TaskParseError
 
 def test_parser_init_empty():
@@ -29,6 +30,6 @@ def test_parser_init_simple_task():
   parser = TaskParser("tests/fixtures/task_specs/simple.py")
 
 def test_parser_to_task_spec():
-  parser = TaskParser("tests/fixtures/task_specs/simple.py")
+  parser = TaskParser("tests/fixtures/task_specs/simple_with_list.py")
   spec = parser.to_spec()
   assert spec is not None
