@@ -4,6 +4,7 @@ import json as JSON
 from imp import load_source
 from os.path import basename, splitext
 
+from flow.typing import Bindings, Variable, Value
 from flow.io_adapter import io
 from flow.dynamic_import import import_module_from_local_source
 
@@ -12,8 +13,8 @@ from lucid.misc.io import load, save
 class JobSpec(object):
   """Serializable data object describing which task to execute and its inputs."""
 
-  def __init__(self, inputs: List[Tuple[str, str]], output: str, task_path: str) -> None:
-    self.inputs = inputs
+  def __init__(self, bindings: Bindings, output: str, task_path: str) -> None:
+    self.inputs = bindings
     self.output = output
     self.task_path = task_path
 
@@ -23,8 +24,7 @@ class JobSpec(object):
     return False
 
   def __repr__(self) -> str:
-    name = basename(self.task_path)
-    return "<JobSpec {}, ({})-> {}>".format(name, self.inputs, self.output)
+    return "<JobSpec {self.task_path}({self.inputs}) -> {self.output}>".format(self=self)
 
   @classmethod
   def value_for_input(cls, input: object) -> object:
@@ -96,9 +96,8 @@ class JobSpec(object):
   # Serialization
 
   @classmethod
-  def from_json(cls, json: str):
+  def from_json(cls, json: str) -> 'JobSpec':
     dict = JSON.loads(json)
-    dict['inputs'] = [(key, value) for [key, value] in dict['inputs']]
     return JobSpec(**dict)
 
   def to_json(self) -> str:

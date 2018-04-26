@@ -67,31 +67,32 @@ class FileEventHandler(object):
     """
     logging.info("Creating new jobs for task '%s'.", task_spec.name)
 
-    if src_path:
-      matched_input_spec = task_spec.matching_input_spec(src_path)
-    else:
-      matched_input_spec = None
-
-    inputs = []
-    for input_spec in task_spec.input_specs:
-      if input_spec == matched_input_spec:
-        values = matched_input_spec.values(src_path)
-        logging.info("Fixing input for input_spec '%s' to %s", matched_input_spec, values)
-      else:
-        values = input_spec.values()
-        logging.info("Found %d inputs for input_spec '%s'", len(values), input_spec.name)
-      inputs.append(values)
-
-    job_specs = []
-    for args_and_assignments in product(*inputs):
-      args, assignments = zip(*args_and_assignments) # unzip
-      assert len(args) == len(task_spec.input_names)
-      job_inputs = list(zip(task_spec.input_names, args))
-      replacements = ChainMap(*assignments) # merges dicts
-      job_output = task_spec.output_spec.output_path(replacements)
-      job_spec = JobSpec(job_inputs, job_output, task_spec.src_path)
-      job_specs.append(job_spec)
-
+    # if src_path:
+    #   matched_input_spec = task_spec.matching_input_spec(src_path)
+    # else:
+    #   matched_input_spec = None
+    #
+    # inputs = []
+    # for input_spec in task_spec.input_specs:
+    #   if input_spec == matched_input_spec:
+    #     values = matched_input_spec.values(src_path)
+    #     logging.info("Fixing input for input_spec '%s' to %s", matched_input_spec, values)
+    #   else:
+    #     values = input_spec.values()
+    #     logging.info("Found %d inputs for input_spec '%s'", len(values), input_spec.name)
+    #   inputs.append(values)
+    #
+    # job_specs = []
+    # for args_and_assignments in product(*inputs):
+    #   args, assignments = zip(*args_and_assignments) # unzip
+    #   assert len(args) == len(task_spec.input_names)
+    #   job_inputs = list(zip(task_spec.input_names, args))
+    #   replacements = ChainMap(*assignments) # merges dicts
+    #   job_output = task_spec.output_spec.output_path(replacements)
+    #   job_spec = JobSpec(job_inputs, job_output, task_spec.src_path)
+    #   job_specs.append(job_spec)
+    # TODO: fix input dimension again!
+    job_specs = task_spec.to_job_specs()
     logging.info("Created {} job_specs, enqueueing...".format(len(job_specs)))
     enqueuer.add(job_specs)
     logging.info("... done enqueueing! (I'm afraid this may be slow; TODO: compare timestamps.)")

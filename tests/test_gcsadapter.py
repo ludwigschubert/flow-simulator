@@ -6,6 +6,8 @@ They talk to the internet and assume state.
 import logging
 import pytest
 
+pytestmark = pytest.mark.skip
+
 from flow.io_adapter import GCStorageAdapter
 
 @pytest.fixture

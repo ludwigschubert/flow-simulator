@@ -66,6 +66,7 @@ class GCTasksEnqueuer(Enqueuer):
     return response
 
   def add(self, job_specs: List[JobSpec]) -> None:
+    # TODO: look into batching API calls
     for job_spec in job_specs:
       if io.exists(job_spec.output):
         logging.info("Skipping enqueueing %s because its output file already exists!", job_spec)

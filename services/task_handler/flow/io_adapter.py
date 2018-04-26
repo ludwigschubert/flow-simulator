@@ -71,7 +71,7 @@ class IOAdapter(ABC):
 # LocalFSAdapter
 
 from glob import glob as localfs_glob
-from builtins import open as localfs_read
+from builtins import open as localfs_open
 from os.path import exists as localfs_exists
 from os.path import normpath as localfs_normpath
 
@@ -92,13 +92,13 @@ class LocalFSAdapter(IOAdapter):
 
   @contextmanager
   def _reading(self, path: str) -> BinaryIO:
-    reading_file = localfs_read(path, mode='r+b')
+    reading_file = localfs_open(path, mode='r+b')
     yield reading_file
     reading_file.close()
 
   @contextmanager
   def _writing(self, path: str) -> BinaryIO:
-    writing_file = localfs_read(path, mode='w+b')
+    writing_file = localfs_open(path, mode='w+b')
     yield writing_file
     writing_file.close()
 
@@ -138,20 +138,20 @@ class GCStorageAdapter(IOAdapter):
 
   @contextmanager
   def _reading(self, path: str) -> BinaryIO:
-    blob = storage.blob.Blob(path, self.bucket)
-    tmpfile = SpooledTemporaryFile() # writes to disk only if necessary
-    blob.download_to_file(tmpfile)
-    tmpfile.seek(0)
-    yield tmpfile
-    tmpfile.close()
+    local_path = self._download(path)
+    reading_file = localfs_open(local_path, mode='r+b')
+    yield reading_file
+    reading_file.close()
 
   @contextmanager
   def _writing(self, path: str) -> BinaryIO:
     blob = storage.blob.Blob(path, self.bucket)
-    tmpfile = SpooledTemporaryFile() # writes to disk only if necessary
-    yield tmpfile
-    tmpfile.seek(0)
-    blob.upload_from_file(tmpfile)
+    local_path = join(self.tempdir, path)
+    makedirs(dirname(local_path), exist_ok=True)
+    writing_file = localfs_open(local_path, mode='w+b')
+    yield writing_file
+    writing_file.close()
+    blob.upload_from_filename(local_path)
 
   def _glob(self, glob_path: str) -> List[str]:
     prefix = glob_path.split('*')[0] # == entire string if no '*' found

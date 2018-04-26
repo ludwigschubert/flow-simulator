@@ -1,8 +1,8 @@
 {
-  "inputs": [
-    [ "name", "/data/names/name1.txt"],
-    [ "salutation", "/data/salutations/salutation1.txt"]
-  ],
+  "bindings": {
+    "name": "/data/names/name1.txt",
+    "salutation": "/data/salutations/salutation1.txt"
+  },
   "output": "/greetings/hello-ludwig.txt",
   "task_path": "/tasks/greetings.py"
 }

@@ -45,3 +45,29 @@ USE_LOCAL_QUEUE=FALSE USE_LOCAL_FS=TRUE PYTHONPATH='.' python simulator/main.py
 Start by moving `say_hello_world.py` from `playground` to `playground/tasks`.
 Results are created in `greetings`, as specified in that task.
 Then, within 'playground' subfolder, create or move new inputs in/to specified input directories.
+
+
+### Right hand side cases
+
+#### lists
+just take as input
+match all files
+
+#### strings
+are PathTemplates
+may produce and or require implicit variables
+
+match only when template matches
+
+#### Lambdas
+have inputs
+evaluated once per product of inputs
+return list of values which is a dimension
+
+#### dictionaries
+have path templates, but some implicit variables are locally bound
+they produce a list of dictionaries (one per unbound variable combination)
+
+#### output
+is PathTemplate
+but requires all it's implicit variables to already be bound

@@ -1,8 +1,9 @@
-output = "/data/greetings/{name}-{salutation}-{x}.txt"
-model = "/some/filepath/"
-x = [1,2,3]
-name = "/data/names/{name}.txt"
-salutation = "/data/salutations/{salutation}.txt"
+output = "/data/greetings/{name_file}-{salutation_file}-{x}.txt"
 
-def main():
+# model = "/some/filepath/"
+x = [1,2,3]
+name = "/data/names/{name_file}.txt"
+salutation = "/data/salutations/{salutation_file}.txt"
+
+def main() -> str:
   return "{salutation} {name}!".format(salutation=salutation, name=name)

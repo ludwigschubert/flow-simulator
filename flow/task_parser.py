@@ -7,7 +7,7 @@ from typing import Dict, Tuple, Any
 import inspect
 
 from flow.io_adapter import io
-from flow.task_spec import TaskSpec
+from flow.task_spec import TaskSpec, InputSpec, OutputSpec
 from flow.dynamic_import import import_module_from_local_source
 
 
@@ -52,8 +52,9 @@ class TaskParser(object):
     logging.debug("Successfully parsed task '{}'".format(task_path))
 
   def to_spec(self) -> TaskSpec:
-    name = basename(self.task_path)
-    return TaskSpec(self.input_objects, self.output_object, self.task_path, name)
+    input_specs = [InputSpec.build(input) for input in self.input_objects]
+    output_spec = OutputSpec.build(self.output_object)
+    return TaskSpec(input_specs, output_spec, self.task_path, basename(self.task_path))
 
 
 def isinput(tuple: Tuple[str, object]) -> bool:
@@ -61,4 +62,5 @@ def isinput(tuple: Tuple[str, object]) -> bool:
   is_builtin = name.startswith('__')
   is_output = name == OUTPUT_NAME
   is_main = name == MAIN_NAME
-  return not (is_builtin or is_output or is_main)
+  is_helper = name in ['load', 'save', 'read', 'write', 'show']
+  return not (is_builtin or is_output or is_main or is_helper)

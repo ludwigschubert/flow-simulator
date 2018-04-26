@@ -3,12 +3,14 @@ import pytest
 import os
 from pytest import raises
 from unittest.mock import patch
+
+from flow.typing import Bindings, Variable, Value
 from flow.job_spec import JobSpec
 import flow
 from io import StringIO
 
 simple_job = {
-  'inputs': [('name', 'Ludwig'), ('x', 2)],
+  'bindings': [('name', 'Ludwig'), ('x', 2)],
   'output': 'tests/fixtures/data/salutations/Ludwig-2.txt',
   'task_path': 'tests/fixtures/task_specs/simple.py'
 }
@@ -37,7 +39,7 @@ def test_deserialization_simple():
   new_spec = JobSpec.from_json(json)
   assert new_spec is not None
   # check that arrays get converted back to tuples:
-  assert new_spec.inputs == [("name", "Ludwig")]
+  assert new_spec.inputs == {"name": "Ludwig"}
 
 def test_execute(simple_job_spec, mocker):
   file_stub = mocker.MagicMock()
