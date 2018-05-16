@@ -93,7 +93,7 @@ class FileEventHandler(object):
     #   job_spec = JobSpec(job_inputs, job_output, task_spec.src_path)
     #   job_specs.append(job_spec)
     # TODO: fix input dimension again!
-    job_specs = task_spec.to_job_specs()
+    job_specs = list(task_spec.to_job_specs())
     logging.info("Created {} job_specs, enqueueing...".format(len(job_specs)))
     self.enqueuer.add(job_specs)
     logging.info("... done enqueueing! (I'm afraid this may be slow; TODO: compare timestamps.)")

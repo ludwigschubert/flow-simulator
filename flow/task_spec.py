@@ -430,10 +430,10 @@ class TaskSpec(object):
     output_path = self.output_spec.with_replacements(bindings)
     return JobSpec(bindings, output_path, self.src_path)
 
-  def to_job_specs(self) -> List[JobSpec]:
-    return list(map(self.to_job_spec, self.all_bindings()))
+  def to_job_specs(self, initial_bindings: Bindings = {}) -> Sequence[JobSpec]:
+    return map(self.to_job_spec, self.all_bindings(initial_bindings))
 
-  def all_bindings(self, initial_bindings: Bindings = {}) -> List[Bindings]:
+  def all_bindings(self, initial_bindings: Bindings = {}) -> Sequence[Bindings]:
     # TODO: return empty list if self.dependencies is empty???
     all_bindings = [initial_bindings]
     sorted_dependencies = toposort_flatten(self.dependencies)

@@ -79,7 +79,7 @@ class JobSpec(object):
     else:
       raise NotImplemented
 
-  def execute(self) -> None:
+  def execute(self) -> Any:
     # load module
     task_path = self.task_path
     if not exists(task_path):
@@ -100,6 +100,7 @@ class JobSpec(object):
     # unload module
     # TODO: test if that actually allows us to call this method multiple times!
     del module
+    return result
 
 
   # Serialization
