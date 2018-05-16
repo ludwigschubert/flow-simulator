@@ -30,20 +30,30 @@ class PathTemplate(Template):
 
   delimiter = '{'
   pattern = r'{(?P<named>[^{}/]+)}'
+  path_template_prefix_fallback = "gs://lucid-flow"
 
   def __init__(self, raw_path_template: str, already_cooked: bool = False) -> None:
     if "*" in raw_path_template:
       raise PathTemplateError("Path template ("+raw_path_template+") may not contain '*'. Use {name} instead.")
-    if not already_cooked:
-      if not raw_path_template.startswith('/'):
-        raise PathTemplateError("Path template ("+raw_path_template+") must start with '/'.")
-      path_template = FLAGS.path_template_prefix + raw_path_template
-    else:
+    if already_cooked:
       path_template = raw_path_template
+    else:
+      if not raw_path_template.startswith('/'):
+        raise PathTemplateError(f"Raw PathTemplate ({raw_path_template}) must start with '/'.")
+      path_template = self._path_template_prefix + raw_path_template
+
     super().__init__(path_template)
 
   def __repr__(self) -> str:
-    return "<PathTemplate {}>".format(self.template)
+    return f"<PathTemplate prefix={self._path_template_prefix} template={self.template}>"
+
+  @property
+  def _path_template_prefix(self) -> str:
+    try:
+      prefix = FLAGS.path_template_prefix
+    except:
+      prefix = self.path_template_prefix_fallback
+    return prefix
 
   @property
   def _capture_regex(self) -> Pattern[str]:
