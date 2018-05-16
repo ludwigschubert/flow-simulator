@@ -11,21 +11,23 @@ output = "/data/evaluations/task=feature-inversion/model={model}/example={exampl
 
 example_image_path = "/data/example-images/{example}.jpg"
 model_directory = "/data/models/{model}"
-layer = lambda model: [layer['name'] for layer in load("/data/models/{model}/model.json".format(model=model))['layers']]
+layer = lambda model: [layer['name'] for layer in load("/data/models/{model}/manifest.json".format(model=model))['layers']]
 input_blur_coeff = [0., -0.5, -1.]
 cossim_pow = [0., 0.5, 1., 2., 4., 8.]
 objective = ['dot_compare']
 
 def main() -> None:
+  from typing import Any
   # Imports
   import tensorflow as tf
   import numpy as np
-  from lucid.modelzoo.vision_base import Model
+  from lucid.modelzoo.vision_base import Model, SerializedModel, FrozenGraphModel
   from lucid.misc.io import show, load, save
   import lucid.optvis.objectives as objectives
   import lucid.optvis.param as param
   import lucid.optvis.render as render
   import lucid.optvis.transform as transform
+  import scipy.ndimage as nd
 
   @objectives.wrap_objective
   def dot_compare(layer, batch=1, cossim_pow=0.5, epsilon=1e-6):
@@ -38,9 +40,10 @@ def main() -> None:
 
   def feature_inversion(model, layer, example_image, n_steps=512, cossim_pow=1.0, input_blur_coeff=0.0):
     with tf.Graph().as_default(), tf.Session() as sess:
+      model.load_graphdef()
       model_name = type(model).__name__
       img_shape = model.image_shape
-      img = example_image # TODO: we'll need to scale at some point
+      img = example_image
       objective = objectives.Objective.sum([
           dot_compare(layer, cossim_pow=cossim_pow),
           input_blur_coeff * objectives.blur_input_each_step(),
@@ -55,31 +58,8 @@ def main() -> None:
           _ = sess.run([vis_op], {t_input: img})
       return t_image.eval(feed_dict={t_input: img})[0]
 
-  from os import path
-  class SerializedModel(Model):
-
-    @classmethod
-    def from_directory(cls, model_path: str) -> 'SerializedModel':
-      manifest_path = path.join(model_path, 'manifest.json')
-      try:
-        manifest = load(manifest_path)
-      except Exception as e:
-        raise ValueError("Could not find model.json file in dir {}.".format(model_path))
-      if manifest.get('type', 'frozen') == 'frozen':
-        return FrozenGraphModel(model_path, manifest)
-      else:
-        raise NotImplementedError("SerializedModel Manifest type '{}' has not been implemented!".format(manifest.get('type')))
-
-  class FrozenGraphModel(SerializedModel):
-
-    def __init__(self, model_directory: str, manifest: Any) -> None:
-      self.model_path = path.join(model_directory, manifest.get('model_path', 'graph.pb'))
-      self.labels_path = manifest.get('labels_path', None)
-      self.image_value_range = manifest.get('image_value_range', None)
-      self.image_shape = manifest.get('image_shape', None)
-      super().__init__()
-
   model = SerializedModel.from_directory(model_directory)
-  model.load_graphdef()
   example_image = load(example_image_path)
-  return feature_inversion(model, layer, example_image, n_steps=1024, cossim_pow=cossim_pow, input_blur_coeff=input_blur_coeff)
+  img_shape = model.image_shape
+  image = nd.zoom(example_image, [img_shape[0]/224., img_shape[1]/224., 1.])
+  return feature_inversion(model, layer, image, n_steps=512, cossim_pow=cossim_pow, input_blur_coeff=input_blur_coeff)

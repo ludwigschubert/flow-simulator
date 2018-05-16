@@ -1,4 +1,6 @@
-set -e
+#!/bin/bash
+set -eo pipefail
+
 
 echo "Copying 'flow' library..."
 for dir in */ ; do
@@ -7,6 +9,6 @@ for dir in */ ; do
 done
 
 echo "Starting joint deploy..."
-yes | gcloud app deploy job_handler/app.yaml --stop-previous-version
+yes | gcloud app deploy task_handler/app.yaml --stop-previous-version
 
 echo "Done!"

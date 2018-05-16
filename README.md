@@ -9,10 +9,6 @@ I'm trying to build for Chris et al.
 Earlier today I was wasting too much time on Google Cloud APIs, and I wanted
 to have a functioning version of the outline Katherine helped me write.
 
-There is a lot of map/territory confusion in the naming conventions of this code.
-Eventually I'd like things to be properly called 'task_spec' if its a specification,
-rather than 'task'.
-
 ## Current task_spec syntax
 
 ```python
@@ -25,7 +21,7 @@ def main():
 
 ## Setup
 
-Careful: **Python 3** only.
+Careful: This requires **Python 3.6** or higher.
 
 ```bash
 virtualenv env
@@ -35,6 +31,13 @@ pip install -r requirements.txt
 
 ## Run
 
+### Authentication
+
+Execute
+```
+gcloud auth application-default login
+```
+
 Slightly awkward because the simulator depends on flow, but not explicitly.
 
 ```bash
@@ -43,7 +46,7 @@ USE_LOCAL_QUEUE=FALSE USE_LOCAL_FS=TRUE PYTHONPATH='.' python simulator/main.py
 ```
 
 Start by moving `say_hello_world.py` from `playground` to `playground/tasks`.
-Results are created in `greetings`, as specified in that task.
+Flow creates results in `greetings`, as specified in that task.
 Then, within 'playground' subfolder, create or move new inputs in/to specified input directories.
 
 

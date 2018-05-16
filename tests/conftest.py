@@ -34,7 +34,7 @@ def dependent_input_spec():
 
 
 # OutputSpec
-from flow.task_spec import OutputSpec, OutputSpecFactory, PathTemplateOutputSpec
+from flow.task_spec import OutputSpec, PathTemplateOutputSpec
 
 @pytest.fixture
 def simple_output():
@@ -42,7 +42,15 @@ def simple_output():
 
 @pytest.fixture
 def output_spec(simple_output):
-  return OutputSpecFactory.build(simple_output)
+  return OutputSpec.build(simple_output)
+
+
+# JobSpec
+from flow.job_spec import JobSpec
+
+@pytest.fixture
+def noop_job_spec():
+  return JobSpec({'unity': 1}, '/data/noop', '/tasks/noop.py')
 
 
 # TaskSpec
@@ -52,7 +60,7 @@ from flow.task_spec import TaskSpec
 def trivial_task_spec():
   iis1 = IterableInputSpec('iis1', [0,1])
   iis2 = IterableInputSpec('iis2', ['a', 'b'])
-  output_spec = OutputSpecFactory.build('/{iis1}/{iis2}.txt')
+  output_spec = OutputSpec.build('/{iis1}/{iis2}.txt')
   a_path = "/tasks/trivial_task_spec.py"
   name = "trivial_task_spec.py"
   return TaskSpec([iis1, iis2], output_spec, a_path, name)

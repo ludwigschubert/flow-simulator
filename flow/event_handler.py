@@ -9,7 +9,7 @@ from flow.io_adapter import io
 from flow.task_parser import TaskParser, TaskParseError
 from flow.task_spec import TaskSpec
 from flow.job_spec import JobSpec
-from flow.job_enqueuer import enqueuer
+from flow.queue import get_enqueuer
 
 
 class FileEventHandler(object):
@@ -19,6 +19,7 @@ class FileEventHandler(object):
   # TODO: make this a flag?
   def __init__(self) -> None:
     self._task_specs = []
+    self.enqueuer = get_enqueuer()
 
   # TODO: rethionk caching here
   @property
@@ -94,7 +95,7 @@ class FileEventHandler(object):
     # TODO: fix input dimension again!
     job_specs = task_spec.to_job_specs()
     logging.info("Created {} job_specs, enqueueing...".format(len(job_specs)))
-    enqueuer.add(job_specs)
+    self.enqueuer.add(job_specs)
     logging.info("... done enqueueing! (I'm afraid this may be slow; TODO: compare timestamps.)")
 
 

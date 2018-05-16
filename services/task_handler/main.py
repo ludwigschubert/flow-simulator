@@ -21,6 +21,11 @@ import json
 from flask import Flask, request
 from flow.event_handler import FileEventHandler
 
+# explcitly parse FLAGS as we're not using absl.app
+from absl import flags
+FLAGS = flags.FLAGS
+FLAGS(["gunicorn"])  # TODO: obviously a terrible hack. Defaults make this work, but it isn't pretty.
+
 app = Flask(__name__)
 event_handler = FileEventHandler()
 

@@ -16,6 +16,10 @@ from flow.typing import Bindings, Variable, Value
 from flow.io_adapter import io
 from flow.job_spec import JobSpec
 
+from absl import flags
+FLAGS = flags.FLAGS
+flags.DEFINE_string('path_template_prefix', 'gs://lucid-flow', 'If supplied, resolves Pathtemplates by prefixing with this string. Defaults to "gs://lucid-flow".')
+
 
 # PathTemplate
 
@@ -27,11 +31,15 @@ class PathTemplate(Template):
   delimiter = '{'
   pattern = r'{(?P<named>[^{}/]+)}'
 
-  def __init__(self, path_template: str) -> None:
-    if "*" in path_template:
-      raise PathTemplateError("Path template ("+path_template+") may not contain '*'. Use {name} instead.")
-    if not path_template.startswith('/'):
-      raise PathTemplateError("Path template ("+path_template+") must start with '/'.")
+  def __init__(self, raw_path_template: str, already_cooked: bool = False) -> None:
+    if "*" in raw_path_template:
+      raise PathTemplateError("Path template ("+raw_path_template+") may not contain '*'. Use {name} instead.")
+    if not already_cooked:
+      if not raw_path_template.startswith('/'):
+        raise PathTemplateError("Path template ("+raw_path_template+") must start with '/'.")
+      path_template = FLAGS.path_template_prefix + raw_path_template
+    else:
+      path_template = raw_path_template
     super().__init__(path_template)
 
   def __repr__(self) -> str:
@@ -50,20 +58,41 @@ class PathTemplate(Template):
     substitution: Mapping[str, str] = collections.defaultdict(lambda: '*')
     return self.substitute(substitution)
 
+  @staticmethod
+  def _escape_slashes_in_dict(dict: Mapping, unescape: bool = False) -> Mapping:
+    mapping = {}
+    for key, value in dict.items():
+      if isinstance(value, str):
+        if unescape:
+          value = value.replace("\\", "/")
+        else:
+          value = value.replace("/", "\\")
+      mapping[key] = value
+    return mapping
+
   def format(self, replacements: Mapping[str, str]) -> str:
-    return self.template.format(**replacements)
+    escaped = self._escape_slashes_in_dict(replacements)
+    return self.template.format(**escaped)
 
   @property
   def placeholders(self) -> List[Variable]:
     return self.pattern.findall(self.template)
 
   def with_replacements(self, replacements: Mapping[Variable, str]) -> 'PathTemplate':
-    return PathTemplate(self.safe_substitute(replacements))
+    escaped = self._escape_slashes_in_dict(replacements)
+    return PathTemplate(self.safe_substitute(escaped), already_cooked=True)
 
   def match(self, path: str) -> Optional[Dict[str, str]]:
+    # logging.debug(self._capture_regex)
+    # logging.debug(path)
     match = self._capture_regex.match(str(path))
+    # logging.debug(match)
     if match:
-      return match.groupdict()
+      result = match.groupdict()
+      # logging.debug(result)
+      escaped = self._escape_slashes_in_dict(result, unescape=True)
+      # logging.debug(escaped)
+      return escaped
     else:
       return None
 
@@ -97,7 +126,7 @@ class InputSpec(Spec):
       return PathTemplateInputSpec(Variable(name), path_template)
     elif isinstance(descriptor, dict):
       return AggregatingInputSpec(Variable(name), descriptor)
-    elif isinstance(descriptor, Sequence):
+    elif isinstance(descriptor, Sequence) and not isinstance(descriptor, str):
       return IterableInputSpec(Variable(name), descriptor)
     elif callable(descriptor):
       return DependentInputSpec(Variable(name), descriptor)
@@ -183,7 +212,13 @@ class PathTemplateInputSpec(InputSpec):
     else:
       glob_string = self.path_template.with_replacements(bindings).glob
       paths = io.glob(glob_string)
-      values = set(self.path_template.match(path).get(variable, None) for path in paths)
+      values = set()
+      for path in paths:
+        match = self.path_template.match(path)
+        if match:
+          value = match.get(variable, None)
+          if value:
+            values.add(value)
       return values
 
 
@@ -325,7 +360,7 @@ class PathTemplateOutputSpec(OutputSpec):
     return set(self.placeholders)
 
   def with_replacements(self, replacements: Mapping[Variable, str]) -> str:
-    return self.path_template.substitute(replacements)
+    return self.path_template.format(replacements)
 
 
 # Task Spec
@@ -402,7 +437,7 @@ class TaskSpec(object):
         # TODO: here, we should instead project bindings to only the variables this input_spec depends on. Then de-dupe and that should save a lot of calls. :-)
         for bindings in all_bindings:
           values = input_spec.values(variable, bindings)
-          logging.debug("Got values %s for bindings %s", values, bindings)
+          logging.debug("Got values %s for bindings %s", list(values), bindings)
           for value in values:
             value_binding = {variable: value}
             value_binding.update(bindings)

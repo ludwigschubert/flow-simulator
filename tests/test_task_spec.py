@@ -32,6 +32,16 @@ def test_path_template_capture(path_template):
   match = path_template.match(path)
   assert match == {'group_id':'subfolder', 'name_id': 'this_is-name1'}
 
+def test_path_template_capture_escaped(path_template):
+  path = "/data/subfolder\\with\\hierarchy/names/name1.txt"
+  match = path_template.match(path)
+  assert match == {'group_id':'subfolder/with/hierarchy', 'name_id': 'name1'}
+
+def test_path_template_format_escaped(path_template):
+  replacements = {'group_id': 'subfolder/with/hierarchy', 'name_id': 'name1'}
+  formatted_path = path_template.format(replacements)
+  assert formatted_path == "/data/subfolder\\with\\hierarchy/names/name1.txt"
+
 def test_path_template_capture_and_format(path_template):
   path = "/data/subfolder/names/this_is-name1.txt"
   match = path_template.match(path)

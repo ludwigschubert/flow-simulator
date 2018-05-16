@@ -1,6 +1,6 @@
 import uuid
 import logging
-from os.path import basename
+from os.path import basename, exists
 from typing import Dict, Tuple, Any
 # from collections import OrderedDict
 
@@ -10,10 +10,7 @@ from flow.io_adapter import io
 from flow.task_spec import TaskSpec, InputSpec, OutputSpec
 from flow.dynamic_import import import_module_from_local_source
 
-
-MAIN_NAME = 'main'
-OUTPUT_NAME = 'output'
-
+RESERVED_NAMES = ['main', 'output', 'load', 'save', 'read', 'write', 'show']
 
 class TaskParseError(Exception):
   pass
@@ -29,8 +26,9 @@ class TaskParser(object):
 
     self.task_path = task_path
 
-    local_path = io.download(task_path)
-    task_module = import_module_from_local_source(local_path)
+    if not exists(task_path):
+      task_path = io.download(task_path)
+    task_module = import_module_from_local_source(task_path)
 
     try:
       self.main_function = task_module.main # type: ignore
@@ -58,9 +56,7 @@ class TaskParser(object):
 
 
 def isinput(tuple: Tuple[str, object]) -> bool:
-  name = tuple[0]
+  name, _ = tuple
   is_builtin = name.startswith('__')
-  is_output = name == OUTPUT_NAME
-  is_main = name == MAIN_NAME
-  is_helper = name in ['load', 'save', 'read', 'write', 'show']
-  return not (is_builtin or is_output or is_main or is_helper)
+  is_reserved = name in RESERVED_NAMES
+  return not (is_builtin or is_reserved)

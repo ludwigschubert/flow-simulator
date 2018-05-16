@@ -4,9 +4,11 @@ gunicorn==19.7.1
 tensorflow
 lucid
 numpy
+scipy
 
 # Flow Libraries
 decorator
+toposort
 
 google-api-python-client==1.6.5
 google-auth==1.4.1

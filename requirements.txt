@@ -2,7 +2,7 @@
 absl-py # FLAGS etc; like internal
 watchdog # local file system events; for simulator only
 decorator # TODO: why is this a library?
-lucid==0.0.7 # for io - should be spun off or heavily redesigned?
+lucid==0.0.8 # for io - should be spun off or heavily redesigned?
 toposort # because we're writing a real language with dependency resolution \o/
 
 # Google API

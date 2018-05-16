@@ -1,5 +1,5 @@
 """Adapter for local FS calls vs GC storage API calls."""
-from typing import Any, List, TextIO, Tuple, Optional, BinaryIO
+from typing import Any, List, Set, TextIO, Tuple, Optional, BinaryIO
 from contextlib import contextmanager, closing
 import logging
 from abc import ABC, abstractmethod
@@ -21,6 +21,7 @@ class IOAdapter(ABC):
   @contextmanager
   def writing(self, path: str) -> BinaryIO:
     normalized = self.normpath(path)
+    self._makedirs(normalized)
     with self._writing(normalized) as writing_file:
       yield writing_file
 
@@ -56,6 +57,10 @@ class IOAdapter(ABC):
     pass
 
   @abstractmethod
+  def _makedirs(self, path: str) -> None:
+    pass
+
+  @abstractmethod
   def _glob(self, path: str) -> List[str]:
     pass
 
@@ -74,6 +79,8 @@ from glob import glob as localfs_glob
 from builtins import open as localfs_open
 from os.path import exists as localfs_exists
 from os.path import normpath as localfs_normpath
+from os.path import dirname as localfs_dirname
+from os import makedirs as localfs_makedirs
 
 class LocalFSAdapter(IOAdapter):
 
@@ -84,10 +91,10 @@ class LocalFSAdapter(IOAdapter):
     return "LocalFSAdapter (root: {})".format(self.root_dir)
 
   def normpath(self, path: str) -> str:
-    path = localfs_normpath(path)
-    if path.startswith('/'):
-      path = path[1:]
-      path = join(self.root_dir, path)
+    # path = localfs_normpath(path)
+    # if path.startswith('/'):
+      # path = path[1:]
+      # path = join(self.root_dir, path)
     return path
 
   @contextmanager
@@ -102,13 +109,17 @@ class LocalFSAdapter(IOAdapter):
     yield writing_file
     writing_file.close()
 
+  def _makedirs(self, path: str) -> None:
+    dirpath = localfs_dirname(path)
+    localfs_makedirs(dirpath, exist_ok=True)
+
   def _glob(self, glob_path: str) -> List[str]:
     logging.debug(glob_path)
     paths = localfs_glob(glob_path)
     logging.debug(str(paths))
     # we need to remove the root dir from all returned paths!
     prefix_length = len(self.root_dir)
-    return [path[prefix_length:] for path in paths]
+    return paths#[path[prefix_length:] for path in paths]
 
   def _exists(self, path: str) -> bool:
     return localfs_exists(path)
@@ -132,8 +143,16 @@ class GCStorageAdapter(IOAdapter):
     self.tempdir = mkdtemp()
 
   def normpath(self, path: str) -> str:
+    # logging.debug(f"normpathing: {path}")
+    if path.startswith('gs://'):
+      path = path[5:]
+    # logging.debug(f"removed gs scheme: {path}")
+    if path.startswith(self.bucket.name):
+      path = path[len(self.bucket.name):]
+    # logging.debug(f"removed bucket: {path}")
     if path.startswith('/'):
       path = path[1:]
+    # logging.debug(f"removed leading slash: {path}")
     return path
 
   @contextmanager
@@ -153,13 +172,21 @@ class GCStorageAdapter(IOAdapter):
     writing_file.close()
     blob.upload_from_filename(local_path)
 
+  def _makedirs(self, path: str) -> None:
+    pass
+
   def _glob(self, glob_path: str) -> List[str]:
-    prefix = glob_path.split('*')[0] # == entire string if no '*' found
     fields = 'items/name,items/updated,nextPageToken'
-    bucket_listing = self.bucket.list_blobs(fields=fields, prefix=prefix)
-    file_paths = [blob.name for blob in bucket_listing]
-    matched_paths = fnmatch.filter(file_paths, glob_path)
-    return ['/' + path for path in matched_paths]
+    matched_paths: List[str] = []
+    # GCS returns folders iff a trailing slash is specified, so we try both:
+    for folder_suffix in ['', '/']:
+      glob_string = glob_path + folder_suffix
+      prefix = glob_string.split('*')[0] # == entire string if no '*' found
+      bucket_listing = self.bucket.list_blobs(fields=fields, prefix=prefix)
+      file_paths = [blob.name for blob in bucket_listing]
+      matched_paths += fnmatch.filter(file_paths, glob_string)
+    # matched_paths = list(sorted(set(matched_paths)))  # should already be unique
+    return [f"gs://{self.bucket.name}/{path}" for path in matched_paths]
 
   def _exists(self, path: str) -> bool:
     return storage.blob.Blob(path, self.bucket).exists()
