@@ -16,7 +16,7 @@ from __future__ import absolute_import, division, print_function
 
 from setuptools import setup, find_packages
 
-version = '0.0.44'
+version = '0.0.45'
 
 setup(
   name = 'flow-simulator',
