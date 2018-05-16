@@ -2,7 +2,7 @@ import logging
 from typing import List, Tuple, Any, Dict
 import json as JSON
 from imp import load_source
-from os.path import basename, splitext, join
+from os.path import basename, splitext, join, exists
 from os import getenv
 
 from flow.typing import Bindings, Variable, Value
@@ -81,8 +81,10 @@ class JobSpec(object):
 
   def execute(self) -> None:
     # load module
-    local_task_path = io.download(self.task_path)
-    module = import_module_from_local_source(local_task_path)
+    task_path = self.task_path
+    if not exists(task_path):
+      task_path = io.download(task_path)
+    module = import_module_from_local_source(task_path)
     # set bindings
     for name, input in self.bindings.items():
       value = self.value_for_input(input)
