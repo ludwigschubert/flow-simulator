@@ -10,7 +10,7 @@ FLAGS = flags.FLAGS
 
 def load(raw_path: str, transform: str = 'None') -> Sequence:
   assert raw_path.startswith('/')
-  path = PathTemplate.get_path_template_prefix() + raw_path
+  path = PathTemplate.path_template_prefix + raw_path
   with io.reading(path) as handle:
     result = lucid_io_load(handle)
   if transform == 'lines':

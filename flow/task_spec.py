@@ -1,7 +1,9 @@
 import logging
 from string import Template
+from datetime import timedelta
 from operator import itemgetter
 from inspect import getargspec
+from random import sample
 import collections
 from typing import NewType, List, Tuple, Any, Dict, Mapping, Optional, Pattern, Union, Iterable, Callable, Set, cast, Sequence
 from re import compile as re_compile
@@ -11,14 +13,12 @@ import fnmatch
 from functools import reduce
 from toposort import toposort, toposort_flatten
 from json import dumps
+from numpy import mean, std
 
 from flow.typing import Bindings, Variable, Value
 from flow.io_adapter import io
 from flow.job_spec import JobSpec
-
-from absl import flags
-FLAGS = flags.FLAGS
-flags.DEFINE_string('path_template_prefix', 'gs://lucid-flow', 'If supplied, resolves Pathtemplates by prefixing with this string. Defaults to "gs://lucid-flow".')
+from flow.util import format_timedelta
 
 
 # PathTemplate
@@ -30,7 +30,7 @@ class PathTemplate(Template):
 
   delimiter = '{'
   pattern = r'{(?P<named>[^{}/]+)}'
-  path_template_prefix_fallback = "gs://lucid-flow"
+  path_template_prefix = "gs://lucid-flow"
 
   def __init__(self, raw_path_template: str, already_cooked: bool = False) -> None:
     if "*" in raw_path_template:
@@ -40,22 +40,12 @@ class PathTemplate(Template):
     else:
       if not raw_path_template.startswith('/'):
         raise PathTemplateError(f"Raw PathTemplate ({raw_path_template}) must start with '/'.")
-      path_template = self.get_path_template_prefix() + raw_path_template
+      path_template = self.path_template_prefix + raw_path_template
 
     super().__init__(path_template)
 
   def __repr__(self) -> str:
-    return f"<PathTemplate prefix={self.get_path_template_prefix()} template={self.template}>"
-
-  @classmethod
-  def get_path_template_prefix(cls) -> str:
-    try:
-      prefix = FLAGS.path_template_prefix
-    except:
-      # TODO(ludwigschubert@): rethink how we're doing configuration
-      logging.warn("Could not get PathTemplate prefix from flags; using fallback. If you're in an environment where you can't control if flags get parsed in time, you can directly override `path_template_prefix_fallback` on the `PathTemplate` class in the `task_spec` module.")
-      prefix = cls.path_template_prefix_fallback
-    return prefix
+    return f"<PathTemplate prefix={self.path_template_prefix} template={self.template}>"
 
   @property
   def _capture_regex(self) -> Pattern[str]:
@@ -420,6 +410,23 @@ class TaskSpec(object):
   def is_task_path(cls, path: str) -> bool:
     return fnmatch.fnmatch(path, cls.task_specification_glob)
 
+  @staticmethod
+  def estimate_cost(num_jobs: int, example_runs: List[JobSpec]) -> None:
+    """Print naive CPU time and cost estimates based on supplied sample runs."""
+
+    print("Estimates are 95% conf. intervals based on std of supplied runs. Only reasonable if colab instance has similar specs as requested AE instances!")
+    durations = [run.execution_duration for run in example_runs]
+    duration_mean, duration_std = mean(durations), std(durations)
+    cpu_time_mean = timedelta(seconds=num_jobs*duration_mean)
+    cpu_time_std = timedelta(seconds=num_jobs*duration_std)
+    print(f"Expecting to use {format_timedelta(cpu_time_mean)}±{format_timedelta(cpu_time_std)} of CPU time.")
+
+    price_per_hour_in_usd = 0.0526 + 2*0.0071 # 1CPU, 2GB RAM, https://cloud.google.com/appengine/pricing#flexible-environment-instances
+    total_price_mean = price_per_hour_in_usd * (cpu_time_mean.total_seconds() / (60*60))
+    total_price_std = price_per_hour_in_usd * (cpu_time_std.total_seconds() / (60*60))
+    print(f"Expecting to cost ${total_price_mean:.2f}±{total_price_std:.2f}.")
+
+
   @property
   def input_names(self) -> List[str]:
     return [input_spec.name for input_spec in self.input_specs]
@@ -468,3 +475,16 @@ class TaskSpec(object):
 
   def should_handle_file(self, src_path: str) -> bool:
     return self.matching_input_spec(src_path) is not None
+
+  def preflight(self, num_tried_jobs: int = 3) -> None:
+    job_specs = list(self.to_job_specs())
+    preflight_jobs = sample(job_specs, num_tried_jobs)
+    for job in preflight_jobs:
+      job.execute()
+    self.estimate_cost(len(job_specs), preflight_jobs)
+
+  def deploy(self, preflight: bool = True) -> None:
+    if preflight:
+      self.preflight()
+    remote_path = f"/tasks/{self.name}.py"
+    io.upload(self.src_path, remote_path)

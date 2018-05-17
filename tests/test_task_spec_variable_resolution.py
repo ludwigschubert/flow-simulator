@@ -13,7 +13,7 @@ def iis2():
 
 @pytest.fixture
 def iisos():
-  return OutputSpecFactory.build('/{iis1}/{iis2}.txt')
+  return OutputSpec.build('/{iis1}/{iis2}.txt')
 
 @pytest.fixture
 def fully_orthogonal(iis1, iis2, iisos):
@@ -50,7 +50,7 @@ def test_dependent_but_orthogonal(iis1, iisos):
     {'iis1': 1, 'iis2': 'b'}
   ])
   job_specs = task_spec.to_job_specs()
-  assert len(job_specs) == 4
+  assert len(list(job_specs)) == 4
 
 def test_dependent(iis1, iisos):
   dependent = DependentInputSpec('iis2', lambda iis1: str(iis1) )

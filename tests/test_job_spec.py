@@ -10,7 +10,7 @@ import flow
 from io import StringIO
 
 simple_job = {
-  'bindings': [('name', 'Ludwig'), ('x', 2)],
+  'bindings': {'name': 'Ludwig', 'x': 2},
   'output': 'tests/fixtures/data/salutations/Ludwig-2.txt',
   'task_path': 'tests/fixtures/task_specs/simple.py'
 }
@@ -29,17 +29,17 @@ def test_init_simple(simple_job_spec):
 def test_serialization_simple(simple_job_spec):
   json = simple_job_spec.to_json()
   assert json is not None
-  assert 'inputs' in json
-  assert 'output' in json
-  assert 'path' in json
   assert 'name' in json
+  assert 'Ludwig' in json
+  assert 'data/salutations/Ludwig-2.txt' in json
+  assert 'task_specs/simple.py' in json
 
 def test_deserialization_simple():
   json = open('tests/fixtures/job_specs/simple.json').read()
   new_spec = JobSpec.from_json(json)
   assert new_spec is not None
   # check that arrays get converted back to tuples:
-  assert new_spec.inputs == {"name": "Ludwig"}
+  assert new_spec.bindings == {"name": "Ludwig"}
 
 def test_execute(simple_job_spec, mocker):
   file_stub = mocker.MagicMock()

@@ -4,6 +4,8 @@ import pytest
 # PathTemplate
 from flow.task_spec import PathTemplate
 
+PathTemplate.path_template_prefix = ''
+
 @pytest.fixture
 def path_template():
   return PathTemplate("/data/{group_id}/names/{name_id}.txt")

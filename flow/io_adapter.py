@@ -37,6 +37,11 @@ class IOAdapter(ABC):
     normalized = self.normpath(path)
     return self._download(normalized)
 
+  def upload(self, local_path: str, remote_path: str) -> None:
+    normalized_local_path = self.normpath(local_path)
+    normalized_remote_path = self.normpath(remote_path)
+    return self._upload(normalized_local_path, normalized_remote_path)
+
   @abstractmethod
   def normpath(self, path: str) -> str:
     """Transforms a canonical path to a form compatible with the IOAdapter.
@@ -72,6 +77,10 @@ class IOAdapter(ABC):
   def _download(self, path: str) -> str:
     pass
 
+  @abstractmethod
+  def _upload(self, local_path: str, remote_path: str) -> None:
+    pass
+
 
 # LocalFSAdapter
 
@@ -84,17 +93,8 @@ from os import makedirs as localfs_makedirs
 
 class LocalFSAdapter(IOAdapter):
 
-  def __init__(self, root_dir: str) -> None:
-    self.root_dir = root_dir
-
-  def __repr__(self) -> str:
-    return "LocalFSAdapter (root: {})".format(self.root_dir)
-
   def normpath(self, path: str) -> str:
-    # path = localfs_normpath(path)
-    # if path.startswith('/'):
-      # path = path[1:]
-      # path = join(self.root_dir, path)
+    path = localfs_normpath(path)
     return path
 
   @contextmanager
@@ -118,7 +118,7 @@ class LocalFSAdapter(IOAdapter):
     paths = localfs_glob(glob_path)
     logging.debug(str(paths))
     # we need to remove the root dir from all returned paths!
-    prefix_length = len(self.root_dir)
+
     return paths#[path[prefix_length:] for path in paths]
 
   def _exists(self, path: str) -> bool:
@@ -127,6 +127,9 @@ class LocalFSAdapter(IOAdapter):
   def _download(self, path: str) -> str:
     """No-op on local fs. Returns LOCAL path!"""
     return path
+
+  def _upload(self, local_path: str, remote_path: str) -> None:
+    raise NotImplementedError("local fs has no concept of uploading")
 
 
 # GCStorageAdapter
@@ -198,11 +201,14 @@ class GCStorageAdapter(IOAdapter):
     blob.download_to_filename(local_path)
     return local_path
 
+  def _upload(self, local_path: str, remote_path: str) -> None:
+    blob = storage.blob.Blob(remote_path, self.bucket)
+    blob.upload_from_filename(local_path)
 
 from os import getenv
 io: IOAdapter
 if getenv('USE_LOCAL_FS', '').startswith('TRUE'):
   logging.warn("Using LocalFSAdapter!")
-  io = LocalFSAdapter(root_dir=getenv('ROOT_DIR', '.'))
+  io = LocalFSAdapter()
 else:
   io = GCStorageAdapter()

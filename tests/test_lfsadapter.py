@@ -3,6 +3,7 @@ import pytest
 
 from flow.io_adapter import LocalFSAdapter
 
+pytestmark = pytest.mark.skip
 
 @pytest.fixture
 def lfs():

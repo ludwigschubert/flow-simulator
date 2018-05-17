@@ -178,7 +178,7 @@ def test_missing_input():
   simple_inputs = [
     PathTemplateInputSpec('pt_one', PathTemplate('/path/{one}.txt'))
   ]
-  output_spec = OutputSpecFactory.build("/some/{one}/{two}.txt")
+  output_spec = OutputSpec.build("/some/{one}/{two}.txt")
   with raises(ValueError):
     TaskSpec(simple_inputs, output_spec, "a_path", "name")
 
@@ -188,13 +188,13 @@ def test_missing_output():
     PathTemplateInputSpec('pt_one', PathTemplate('/path/{one}.txt')),
     PathTemplateInputSpec('pt_two', PathTemplate('/different/{two}.txt'))
   ]
-  output_spec = OutputSpecFactory.build("/some/{one}/fixed.txt")
+  output_spec = OutputSpec.build("/some/{one}/fixed.txt")
   with raises(ValueError):
     TaskSpec(simple_inputs, output_spec, "a_path", "name")
 
 @pytest.mark.skip(reason="currenlty not well defined what these conditions mean.")
 def test_mismatch_input_output():
   simple_inputs = [PathTemplateInputSpec('pt_one', PathTemplate('/path/{one}.txt'))]
-  output_spec = OutputSpecFactory.build("/some/{two}/fixed.txt")
+  output_spec = OutputSpec.build("/some/{two}/fixed.txt")
   with raises(ValueError):
     TaskSpec(simple_inputs, output_spec, "a_path", "name")
