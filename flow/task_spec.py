@@ -40,19 +40,21 @@ class PathTemplate(Template):
     else:
       if not raw_path_template.startswith('/'):
         raise PathTemplateError(f"Raw PathTemplate ({raw_path_template}) must start with '/'.")
-      path_template = self._path_template_prefix + raw_path_template
+      path_template = self.get_path_template_prefix() + raw_path_template
 
     super().__init__(path_template)
 
   def __repr__(self) -> str:
-    return f"<PathTemplate prefix={self._path_template_prefix} template={self.template}>"
+    return f"<PathTemplate prefix={self.get_path_template_prefix()} template={self.template}>"
 
-  @property
-  def _path_template_prefix(self) -> str:
+  @classmethod
+  def get_path_template_prefix(cls) -> str:
     try:
       prefix = FLAGS.path_template_prefix
     except:
-      prefix = self.path_template_prefix_fallback
+      # TODO(ludwigschubert@): rethink how we're doing configuration
+      logging.warn("Could not get PathTemplate prefix from flags; using fallback. If you're in an environment where you can't control if flags get parsed in time, you can directly override `path_template_prefix_fallback` on the `PathTemplate` class in the `task_spec` module.")
+      prefix = cls.path_template_prefix_fallback
     return prefix
 
   @property

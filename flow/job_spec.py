@@ -4,6 +4,7 @@ import json as JSON
 from imp import load_source
 from os.path import basename, splitext, join, exists
 from os import getenv
+from timeit import default_timer as timer
 
 from flow.typing import Bindings, Variable, Value
 from flow.io_adapter import io
@@ -62,6 +63,7 @@ class JobSpec(object):
 
   @classmethod
   def save_result_for_output(cls, result: object, output: object) -> None:
+    """TODO: move io_adapter into lucid.misc.io and DELETE this!"""
     if result is None:
       logging.info("Task did not return a result; but maybe it's just saving the result itself?")
       return
@@ -74,12 +76,11 @@ class JobSpec(object):
       else:
         with io.writing(output) as output_file:
           save(result, output_file)
-      # else:
-        # raise NotImplemented # TODO: isn't this an invalid case? what does a str even mean here?
     else:
       raise NotImplemented
 
   def execute(self) -> Any:
+    start = timer()
     # load module
     task_path = self.task_path
     if not exists(task_path):
@@ -96,11 +97,13 @@ class JobSpec(object):
     setattr(module, 'output', output_value)
     # execute and save result
     self.result = module.main() # type: ignore
+    end = timer()
+    self.execution_duration = end - start
     self.save_result_for_output(self.result, self.output)
     # unload module
     # TODO: test if that actually allows us to call this method multiple times!
     del module
-    return result
+    return self.result
 
 
   # Serialization
