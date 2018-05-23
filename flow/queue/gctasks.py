@@ -40,8 +40,10 @@ class GCTasksEnqueuer(Enqueuer):
     return response
 
   def add(self, job_specs: List[JobSpec]) -> None:
-    for job_spec in job_specs:
-      if io.exists(job_spec.output):
+    paths = [job_spec.output for job_spec in job_specs]
+    exist = io.exist(paths)
+    for job_spec, exists in zip(job_specs, exist):
+      if exists:
         logging.info("Skipping enqueueing %s because its output file already exists!", job_spec)
       else:
         json_payload = job_spec.to_json()

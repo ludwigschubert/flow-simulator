@@ -9,6 +9,7 @@ from timeit import default_timer as timer
 from flow.typing import Bindings, Variable, Value
 from flow.io_adapter import io
 from flow.dynamic_import import import_module_from_local_source
+from flow.path_template import PathTemplate, PathTemplateError
 
 from lucid.misc.io import load, save
 
@@ -32,24 +33,26 @@ class JobSpec(object):
   def value_for_input(cls, input: object) -> object:
     if isinstance(input, str):
       logging.debug("input is str")
-      if input.startswith("/"): # = is a canonical path
-        logging.debug("input is path")
-        root_dir = getenv('ROOT_DIR', 'gs://lucid-flow')
-        return root_dir + input
-        # if splitext(input)[1] == '.txt': # TODO: move to lucid/misc/io!
-        #   with io.reading(input) as handle:
-        #     value = handle.read().decode().rstrip('\n')
-        #   return value
-        # else:
-        #   with io.reading(input) as handle:
-        #     result = load(handle)
-        #   return result
-      else:
-        logging.debug("input is not path")
-        return input
+      # TODO: here is where we would add convenience loading etc.
+      return input
+    if isinstance(input, dict):
+      logging.debug("input is dict!")
+      # this signifies an aggregating input spec! let's resolve it:
+      assert len(input.items()) == 1
+      placeholder_string, path_template_string = list(input.items())[0]
+      path_template = PathTemplate(path_template_string, already_cooked=True)
+      placeholders = placeholder_string.split(',')
+      assert placeholders == path_template.placeholders
+      paths = io.glob(path_template.glob)
+      value = {}
+      for path in paths:
+        matches = path_template.match(path)
+        if matches:
+          key = tuple(matches[ph] for ph in placeholders)
+          value[key] = path
+      return value
     if isinstance(input, (int, float, tuple, list, dict, set)):
       logging.debug("input is value")
-      # TODO: how to transform?? Mayeb not at all?
       return input
     else:
       raise NotImplemented

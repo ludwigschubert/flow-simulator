@@ -1,4 +1,5 @@
 import pytest
+import json
 from pytest import raises
 
 from flow.task_spec import *
@@ -117,13 +118,16 @@ def test_ais_unbound_variables():
     _ = AggregatingInputSpec(name, dictionary)
   assert 'unbound' in str(excinfo.value)
 
-def test_ais_values(aggregating_input_spec, mocker):
-  mock_paths = [
+@pytest.fixture
+def mock_paths():
+  return [
     '/data/layer1/neuron1.jpg',
     '/data/layer1/neuron2.jpg',
     '/data/layer2/neuron1.jpg',
     '/data/layer2/neuron2.jpg',
   ]
+
+def test_ais_no_bound_values(aggregating_input_spec, mocker, mock_paths):
   mocked_glob = mocker.patch('flow.task_spec.io.glob', return_value=mock_paths)
 
   variable = Variable('layer')
@@ -132,12 +136,40 @@ def test_ais_values(aggregating_input_spec, mocker):
 
   assert values == {'layer1', 'layer2'}
 
+def test_ais_bound_values(aggregating_input_spec, mocker, mock_paths):
+  mocked_glob = mocker.patch('flow.task_spec.io.glob', return_value=mock_paths)
+
   variable = aggregating_input_spec.name
   bindings = {'layer': 'layer1'}
-  value = aggregating_input_spec.values(variable, bindings)
+  values = aggregating_input_spec.values(variable, bindings)
+  assert len(values) == 1
+  value = dict(list(values)[0])  # unfreezes
+  golden = {'neuron': '/data/layer1/{neuron}.jpg'}
+  assert value == golden
 
-  assert value == {'/data/layer1/{neuron}.jpg'}
+def test_ais_multiple_bound_values(aggregating_input_spec, mocker, mock_paths):
+  mocked_glob = mocker.patch('flow.task_spec.io.glob', return_value=mock_paths)
 
+  variable = aggregating_input_spec.name
+  bindings = {}
+  values = aggregating_input_spec.values(variable, bindings)
+  assert len(values) == 1
+  value = dict(list(values)[0])  # unfreezes
+  golden = {'layer,neuron': '/data/{layer}/{neuron}.jpg'}
+  assert value == golden
+
+def test_ais_jobspec_unpacking(mocker, mock_paths):
+  mocked_glob = mocker.patch('flow.job_spec.io.glob', return_value=mock_paths)
+
+  input = {'layer,neuron': '/data/{layer}/{neuron}.jpg'}
+  value = JobSpec.value_for_input(input)
+
+  golden = {
+   ('layer1', 'neuron1'): '/data/layer1/neuron1.jpg',
+   ('layer1', 'neuron2'): '/data/layer1/neuron2.jpg',
+   ('layer2', 'neuron1'): '/data/layer2/neuron1.jpg',
+   ('layer2', 'neuron2'): '/data/layer2/neuron2.jpg'}
+  assert value == golden
 
 # Test DependentInputSpec
 

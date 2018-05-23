@@ -31,16 +31,21 @@ class IOAdapter(ABC):
 
   def exists(self, path: str) -> bool:
     normalized = self.normpath(path)
-    return self._exists(normalized)
+    values = self._exist([normalized])
+    assert len(values) == 1
+    return values[0]
+
+  def exist(self, paths: List[str]) -> List[bool]:
+    normalized = [self.normpath(path) for path in paths]
+    return self._exist(normalized)
 
   def download(self, path: str) -> str:
     normalized = self.normpath(path)
     return self._download(normalized)
 
   def upload(self, local_path: str, remote_path: str) -> None:
-    normalized_local_path = self.normpath(local_path)
     normalized_remote_path = self.normpath(remote_path)
-    return self._upload(normalized_local_path, normalized_remote_path)
+    return self._upload(local_path, normalized_remote_path)
 
   @abstractmethod
   def normpath(self, path: str) -> str:
@@ -70,7 +75,7 @@ class IOAdapter(ABC):
     pass
 
   @abstractmethod
-  def _exists(self, path: str) -> bool:
+  def _exist(self, paths: List[str]) -> List[bool]:
     pass
 
   @abstractmethod
@@ -121,8 +126,8 @@ class LocalFSAdapter(IOAdapter):
 
     return paths#[path[prefix_length:] for path in paths]
 
-  def _exists(self, path: str) -> bool:
-    return localfs_exists(path)
+  def _exist(self, paths: List[str]) -> List[bool]:
+    return [localfs_exists(path) for path in paths]
 
   def _download(self, path: str) -> str:
     """No-op on local fs. Returns LOCAL path!"""
@@ -191,8 +196,10 @@ class GCStorageAdapter(IOAdapter):
     # matched_paths = list(sorted(set(matched_paths)))  # should already be unique
     return [f"gs://{self.bucket.name}/{path}" for path in matched_paths]
 
-  def _exists(self, path: str) -> bool:
-    return storage.blob.Blob(path, self.bucket).exists()
+  def _exist(self, paths: List[str]) -> List[bool]:
+    with self.client.batch():
+      bools = [storage.blob.Blob(path, self.bucket).exists() for path in paths]
+    return bools
 
   def _download(self, path: str) -> str:
     local_path = join(self.tempdir, path)

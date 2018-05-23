@@ -2,7 +2,7 @@ from typing import Sequence
 import logging
 
 from flow.io_adapter import io
-from flow.task_spec import PathTemplate
+from flow.path_template import PathTemplate
 from lucid.misc.io import load as lucid_io_load
 
 from absl import flags

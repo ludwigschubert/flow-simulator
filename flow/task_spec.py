@@ -1,12 +1,11 @@
 import logging
-from string import Template
+
 from datetime import timedelta
 from operator import itemgetter
 from inspect import getargspec
 from random import sample
-import collections
-from typing import NewType, List, Tuple, Any, Dict, Mapping, Optional, Pattern, Union, Iterable, Callable, Set, cast, Sequence
-from re import compile as re_compile
+from collections import defaultdict
+from typing import NewType, List, Tuple, Any, Dict, Mapping, Optional, Union, Iterable, Callable, Set, cast, Sequence
 from abc import ABC, abstractmethod
 from os.path import basename, splitext
 import fnmatch
@@ -14,89 +13,13 @@ from functools import reduce
 from toposort import toposort, toposort_flatten
 from json import dumps
 from numpy import mean, std
+from utilspie.collectionsutils import frozendict
 
 from flow.typing import Bindings, Variable, Value
 from flow.io_adapter import io
 from flow.job_spec import JobSpec
 from flow.util import format_timedelta
-
-
-# PathTemplate
-
-class PathTemplateError(ValueError):
-  pass
-
-class PathTemplate(Template):
-
-  delimiter = '{'
-  pattern = r'{(?P<named>[^{}/]+)}'
-  path_template_prefix = "gs://lucid-flow"
-
-  def __init__(self, raw_path_template: str, already_cooked: bool = False) -> None:
-    if "*" in raw_path_template:
-      raise PathTemplateError("Path template ("+raw_path_template+") may not contain '*'. Use {name} instead.")
-    if already_cooked:
-      path_template = raw_path_template
-    else:
-      if not raw_path_template.startswith('/'):
-        raise PathTemplateError(f"Raw PathTemplate ({raw_path_template}) must start with '/'.")
-      path_template = self.path_template_prefix + raw_path_template
-
-    super().__init__(path_template)
-
-  def __repr__(self) -> str:
-    return f"<PathTemplate prefix={self.path_template_prefix} template={self.template}>"
-
-  @property
-  def _capture_regex(self) -> Pattern[str]:
-    regex = self.template \
-      .replace("/", "\/") \
-      .replace("{", r"(?P<") \
-      .replace("}", r">[^{}/]+)")
-    return re_compile(regex)
-
-  @property
-  def glob(self) -> str:
-    substitution: Mapping[str, str] = collections.defaultdict(lambda: '*')
-    return self.substitute(substitution)
-
-  @staticmethod
-  def _escape_slashes_in_dict(dict: Mapping, unescape: bool = False) -> Mapping:
-    mapping = {}
-    for key, value in dict.items():
-      if isinstance(value, str):
-        if unescape:
-          value = value.replace("\\", "/")
-        else:
-          value = value.replace("/", "\\")
-      mapping[key] = value
-    return mapping
-
-  def format(self, replacements: Mapping[str, str]) -> str:
-    escaped = self._escape_slashes_in_dict(replacements)
-    return self.template.format(**escaped)
-
-  @property
-  def placeholders(self) -> List[Variable]:
-    return self.pattern.findall(self.template)
-
-  def with_replacements(self, replacements: Mapping[Variable, str]) -> 'PathTemplate':
-    escaped = self._escape_slashes_in_dict(replacements)
-    return PathTemplate(self.safe_substitute(escaped), already_cooked=True)
-
-  def match(self, path: str) -> Optional[Dict[str, str]]:
-    # logging.debug(self._capture_regex)
-    # logging.debug(path)
-    match = self._capture_regex.match(str(path))
-    # logging.debug(match)
-    if match:
-      result = match.groupdict()
-      # logging.debug(result)
-      escaped = self._escape_slashes_in_dict(result, unescape=True)
-      # logging.debug(escaped)
-      return escaped
-    else:
-      return None
+from flow.path_template import PathTemplate, PathTemplateError
 
 
 # Input & Output Spec
@@ -267,15 +190,15 @@ class AggregatingInputSpec(InputSpec):
     return set(self.path_template.placeholders) - set(self.locally_bound_variables)
 
   def values(self, variable: Variable, bindings: Bindings) -> Set[Value]:
-    # TODO: This has obvious similarities to PathTemplate's version. What to do?
     assert variable == self.name or variable in self.path_template.placeholders
     assert variable not in self.locally_bound_variables
     assert not any(lvar in bindings for lvar in self.locally_bound_variables)
     path_template = self.path_template.with_replacements(bindings)
     if variable == self.name:
-      # TODO: ugliness. Would prefer to return a set of dict[tuple->str], but dict is not hashable so set won't take it. Hrmpf.
-      # TODO: important: evaluate at this point in time instead!
-      return set([path_template.template])
+      # TODO: important: evaluate at this point in time instead? Nope.
+      aggregating = ",".join(path_template.placeholders)
+      point_map = frozendict({aggregating: path_template.template})
+      return set([point_map])
     else:
       paths = io.glob(path_template.glob)
       values = set(self.path_template.match(path)[variable] for path in paths)
@@ -308,7 +231,7 @@ class DependentInputSpec(InputSpec):
   def implicitly_declared_variables(self) -> Set[Variable]:
     return set()
 
-  def values(self, variable: Variable, bindings: Bindings) -> List[Value]:
+  def values(self, variable: Variable, bindings: Bindings) -> Set[Value]:
     assert variable == self.name
     assert all(arg in bindings for arg in self.inputs)
     arguments = [bindings[arg] for arg in self.inputs]
@@ -316,9 +239,9 @@ class DependentInputSpec(InputSpec):
     if self.name in bindings:
       bound_value = bindings[self.name]
       if bound_value in values:
-        return [bound_value]
+        return set([bound_value])
       else:
-        return []
+        return set()
     else:
       return values
 
@@ -379,7 +302,7 @@ class TaskSpec(object):
     self.src_path = src_path
     self.name = name
     self._verify_placeholders()
-    self.variable_to_input_spec = collections.defaultdict(list)
+    self.variable_to_input_spec = defaultdict(list)
     for input_spec in inputs:
       for variable in input_spec.declared_variables():
         self.variable_to_input_spec[variable].append(input_spec)
@@ -477,10 +400,12 @@ class TaskSpec(object):
     return self.matching_input_spec(src_path) is not None
 
   def preflight(self, num_tried_jobs: int = 3) -> None:
+    logging.info(f"Starting preflight, running {num_tried_jobs} jobs...")
     job_specs = list(self.to_job_specs())
     preflight_jobs = sample(job_specs, num_tried_jobs)
     for job in preflight_jobs:
       job.execute()
+      logging.info(f"Job completed without error.")
     self.estimate_cost(len(job_specs), preflight_jobs)
 
   def deploy(self, preflight: bool = True) -> None:
