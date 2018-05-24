@@ -34,6 +34,7 @@ class PathTemplate(Template):
   def _capture_regex(self) -> Pattern[str]:
     regex = self.template \
       .replace("/", "\/") \
+      .replace("\\", "\\\\") \
       .replace("{", r"(?P<") \
       .replace("}", r">[^{}/]+)")
     return re_compile(regex)
