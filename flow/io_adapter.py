@@ -7,6 +7,8 @@ import fnmatch
 from os.path import join, dirname
 from os import makedirs
 
+from flow.util import memoize
+
 
 # TODO: reify concept of flow-paths as a type?
 
@@ -183,6 +185,7 @@ class GCStorageAdapter(IOAdapter):
   def _makedirs(self, path: str) -> None:
     pass
 
+  @memoize
   def _glob(self, glob_path: str) -> List[str]:
     fields = 'items/name,items/updated,nextPageToken'
     matched_paths: List[str] = []
