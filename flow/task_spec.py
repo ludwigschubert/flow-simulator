@@ -383,7 +383,7 @@ class TaskSpec(object):
         new_bindings: List[Bindings] = []
         memoized_values: Dict[FrozenSet[Tuple[Variable, Value]], Set[Value]] = {}
         for bindings in all_bindings:
-          relevant_bs = frozenset((var,value) for var, value in bindings.items() if var in relevant_vars)
+          relevant_bs = frozenset((var,str(value)) for var, value in bindings.items() if var in relevant_vars)
           if relevant_bs in memoized_values:
             values = memoized_values[relevant_bs]
             logging.debug("Found cached values %s for bindings %s", list(values), bindings)
