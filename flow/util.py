@@ -21,6 +21,15 @@ def format_timedelta(timedelta: timedelta) -> str:
     template = '{days} days, {hours}h'
   return template.format(**d)
 
+def memoize_single_arg(f):
+  """ Memoization decorator for a function taking a single argument.
+  Via http://code.activestate.com/recipes/578231"""
+  class memodict(dict):
+    def __missing__(self, key):
+      ret = self[key] = f(key)
+      return ret
+  return memodict().__getitem__
+
 def memoize(f):
   """ Memoization decorator for functions taking one or more arguments.
   Via https://wiki.python.org/moin/PythonDecoratorLibrary
