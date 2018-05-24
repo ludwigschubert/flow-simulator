@@ -38,19 +38,23 @@ class JobSpec(object):
     if isinstance(input, dict):
       logging.debug("input is dict!")
       # this signifies an aggregating input spec! let's resolve it:
-      assert len(input.items()) == 1
-      placeholder_string, path_template_string = list(input.items())[0]
-      path_template = PathTemplate(path_template_string, already_cooked=True)
-      placeholders = placeholder_string.split(',')
-      assert placeholders == path_template.placeholders
-      paths = io.glob(path_template.glob)
-      value = {}
-      for path in paths:
-        matches = path_template.match(path)
-        if matches:
-          key = tuple(matches[ph] for ph in placeholders)
-          value[key] = path
-      return value
+      if len(input.items()) == 1:
+        logging.debug("input dict had one entry, assuming AggregatingIS")
+        placeholder_string, path_template_string = list(input.items())[0]
+        path_template = PathTemplate(path_template_string, already_cooked=True)
+        placeholders = placeholder_string.split(',')
+        assert placeholders == path_template.placeholders
+        paths = io.glob(path_template.glob)
+        value = {}
+        for path in paths:
+          matches = path_template.match(path)
+          if matches:
+            key = tuple(matches[ph] for ph in placeholders)
+            value[key] = path
+        return value
+      else:
+        logging.debug("input dict had multiple entries, simply setting value.")
+        return input
     if isinstance(input, (int, float, tuple, list, dict, set)):
       logging.debug("input is value")
       return input

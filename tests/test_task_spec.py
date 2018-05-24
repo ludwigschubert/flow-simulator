@@ -198,6 +198,8 @@ def test_output_simple(output_spec):
 
 # Test TaskSpec
 
+# TODO: currently outputspec can have variables that aren't resolvable via inputs. Define correct behavior for that case and test and fail early! :-)
+
 def test_trivial_task_spec(trivial_task_spec):
   assert trivial_task_spec
   assert isinstance(trivial_task_spec.input_specs, List)
