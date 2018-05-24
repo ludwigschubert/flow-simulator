@@ -5,7 +5,7 @@ from operator import itemgetter
 from inspect import getargspec
 from random import sample
 from collections import defaultdict
-from typing import NewType, List, Tuple, Any, Dict, Mapping, Optional, Union, Iterable, Callable, Set, cast, Sequence
+from typing import NewType, List, Tuple, Any, Dict, Mapping, Optional, Union, Iterable, Callable, Set, cast, Sequence, FrozenSet
 from abc import ABC, abstractmethod
 from os.path import basename, splitext
 import fnmatch
@@ -31,6 +31,10 @@ class Spec(ABC):
 
   @abstractmethod
   def depends_on(self) -> Set[Variable]:
+    """Returns the set of variables this input_spec's values depend on.
+    Used to memoize calls to values(). Should not include the input_spec's
+    own name, i.e. not the variable it is defining itself.
+    """
     pass
 
 
@@ -374,18 +378,18 @@ class TaskSpec(object):
       variable = Variable(variable_name)
       input_specs = self.variable_to_input_spec[variable]
       for input_spec in input_specs:
-        logging.debug("Resolving '%s': found corresponding input spec '%s'", variable, input_spec)
+        relevant_vars = input_spec.depends_on() | set([input_spec.name])
+        logging.debug(f"Resolving '{variable}' via {input_spec} on relevant vars {relevant_vars}.")
         new_bindings: List[Bindings] = []
-        memoized_values: Dict[List[Tuple[Variable, Value]], Set[Value]] = {}
+        memoized_values: Dict[FrozenSet[Tuple[Variable, Value]], Set[Value]] = {}
         for bindings in all_bindings:
-          relevant_bs = [(var,value) for var, value in bindings.items()
-                         if var in input_spec.depends_on()]
+          relevant_bs = frozenset((var,value) for var, value in bindings.items() if var in relevant_vars)
           if relevant_bs in memoized_values:
             values = memoized_values[relevant_bs]
             logging.debug("Found cached values %s for bindings %s", list(values), bindings)
           else:
             values = input_spec.values(variable, bindings)
-            memoized_values[relevant_bs] = values
+            # memoized_values[relevant_bs] = values
             logging.debug("Memoized values %s for bindings %s", list(values), bindings)
           for value in values:
             value_binding = {variable: value}
