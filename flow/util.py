@@ -12,7 +12,7 @@ def format_timedelta(timedelta: timedelta) -> str:
   if d['minutes'] == 0:
     template = '{seconds}s'
   elif d['hours'] == 0:
-    template = '{minutes}m,{sec}s'
+    template = '{minutes}m,{seconds}s'
   elif d['days'] == 0:
     template = '{hours}h:{minutes}m'
   elif d['days'] == 1:
