@@ -376,10 +376,17 @@ class TaskSpec(object):
       for input_spec in input_specs:
         logging.debug("Resolving '%s': found corresponding input spec '%s'", variable, input_spec)
         new_bindings: List[Bindings] = []
-        # TODO: here, we should instead project bindings to only the variables this input_spec depends on. Then de-dupe and that should save a lot of calls. :-)
+        memoized_values: Dict[List[Tuple[Variable, Value]], Set[Value]] = {}
         for bindings in all_bindings:
-          values = input_spec.values(variable, bindings)
-          logging.debug("Got values %s for bindings %s", list(values), bindings)
+          relevant_bs = [(var,value) for var, value in bindings.items()
+                         if var in input_spec.depends_on()]
+          if relevant_bs in memoized_values:
+            values = memoized_values[relevant_bs]
+            logging.debug("Found cached values %s for bindings %s", list(values), bindings)
+          else:
+            values = input_spec.values(variable, bindings)
+            memoized_values[relevant_bs] = values
+            logging.debug("Memoized values %s for bindings %s", list(values), bindings)
           for value in values:
             value_binding = {variable: value}
             value_binding.update(bindings)
