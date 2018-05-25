@@ -7,7 +7,7 @@ import fnmatch
 from os.path import join, dirname
 from os import makedirs
 
-from flow.util import memoize
+from flow.util import memoize, batch
 
 
 # TODO: reify concept of flow-paths as a type?
@@ -142,6 +142,7 @@ class LocalFSAdapter(IOAdapter):
 # GCStorageAdapter
 
 from google.cloud import storage
+from google.cloud.exceptions import NotFound
 from tempfile import SpooledTemporaryFile, mkdtemp
 
 class GCStorageAdapter(IOAdapter):
@@ -199,9 +200,23 @@ class GCStorageAdapter(IOAdapter):
     # matched_paths = list(sorted(set(matched_paths)))  # should already be unique
     return [f"gs://{self.bucket.name}/{path}" for path in matched_paths]
 
+  # TODO: FAIL, this doesn't work at all. coulod just not use batch for now,
+  # but I'll wait until tomorrow to see if I can get a reply from the Github issue: https://github.com/GoogleCloudPlatform/google-cloud-python/issues/5388
   def _exist(self, paths: List[str]) -> List[bool]:
-    with self.client.batch():
-      bools = [storage.blob.Blob(path, self.bucket).exists() for path in paths]
+    """Checks for existence of a list of paths to Blobs.
+    Exists as a perf optimization. Needs to do custom batching because Google's
+    client.batch has a _MAX_BATCH_SIZE of 1000.
+    """
+    blobs = [storage.blob.Blob(path, self.bucket) for path in paths]
+    bools = [blob.exists() for blob in blobs]
+    # for blob_batch in batch(blobs, 999):
+    #     with self.client.batch():
+    #       try:
+    #         for path in blob_batch:
+    #           bools += [blob.exists() for blob in blob_batch]
+    #       except NotFound as exception:
+    #         logging.error(exception)
+    #         logging.error(dir(exception))
     return bools
 
   def _download(self, path: str) -> str:

@@ -68,6 +68,15 @@ def trivial_task_spec():
   return TaskSpec([iis1, iis2], output_spec, a_path, name)
 
 @pytest.fixture
+def task_spec_repetetive():
+  iis1 = IterableInputSpec('iis1', [0,1])
+  iis2 = IterableInputSpec('iis2', ['a', 'b'])
+  output_spec = OutputSpec.build('/{iis1}/{iis2}.txt')
+  a_path = "/tasks/trivial_task_spec.py"
+  name = "trivial_task_spec.py"
+  return TaskSpec([iis1, iis2], output_spec, a_path, name)
+
+@pytest.fixture
 def full_task_spec(iterable_input_spec, aggregating_input_spec, dependent_input_spec, output_spec):
   path_template = PathTemplate('/data/models/{model_name}/checkpoints/{checkpoint_folder}')
   path_template_input_spec = PathTemplateInputSpec('checkpoint_path', path_template)
