@@ -13,8 +13,7 @@ _temp_dir = tempfile.mkdtemp(prefix="flow_")
 @register_cell_magic
 def flow_task_spec(line: str, cell: str) -> None:
   base_name = line.split()[0]
-  name_str = base_name + "_" + str(uuid.uuid4())
-  filename = osp.join(_temp_dir, f"{name_str}.py")
+  filename = osp.join(_temp_dir, str(uuid.uuid4()), f"{base_name}.py")
   with open(filename, "w") as file_handle:
     file_handle.write(cell)
   task_spec = TaskParser(filename).to_spec()

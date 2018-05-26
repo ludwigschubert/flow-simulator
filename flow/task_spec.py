@@ -422,5 +422,5 @@ class TaskSpec(object):
   def deploy(self, preflight: bool = True) -> None:
     if preflight:
       self.preflight()
-    remote_path = f"/tasks/{self.name}.py"
+    remote_path = f"tasks/{self.name}.py"
     io.upload(self.src_path, remote_path)
