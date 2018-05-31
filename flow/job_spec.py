@@ -72,7 +72,7 @@ class JobSpec(object):
   def save_result_for_output(cls, result: object, output: object) -> None:
     """TODO: move io_adapter into lucid.misc.io and DELETE this!"""
     if result is None:
-      logging.info("Task did not return a result; but maybe it's just saving the result itself?")
+      logging.info(f"Task did not return a result. You can check the declared output: {output}")
       return
     if isinstance(output, str):
       # if output.startswith("/"): # = is a canonical path
