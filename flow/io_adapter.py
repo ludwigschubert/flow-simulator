@@ -1,5 +1,5 @@
 """Adapter for local FS calls vs GC storage API calls."""
-from typing import Any, List, Set, TextIO, Tuple, Optional, BinaryIO
+from typing import Any, List, Set, TextIO, Tuple, Optional, IO
 from contextlib import contextmanager, closing
 import logging
 from abc import ABC, abstractmethod
@@ -15,16 +15,16 @@ from flow.util import memoize, batch
 class IOAdapter(ABC):
 
   @contextmanager
-  def reading(self, path: str) -> BinaryIO:
+  def reading(self, path: str) -> IO:
     normalized = self.normpath(path)
     with self._reading(normalized) as reading_file:
       yield reading_file
 
   @contextmanager
-  def writing(self, path: str) -> BinaryIO:
+  def writing(self, path: str, mode: str = "w+b") -> IO:
     normalized = self.normpath(path)
     self._makedirs(normalized)
-    with self._writing(normalized) as writing_file:
+    with self._writing(normalized, mode=mode) as writing_file:
       yield writing_file
 
   def glob(self, path: str) -> List[str]:
@@ -60,12 +60,12 @@ class IOAdapter(ABC):
 
   @abstractmethod
   @contextmanager
-  def _reading(self, path: str) -> BinaryIO:
+  def _reading(self, path: str, mode: str) -> IO:
     pass
 
   @abstractmethod
   @contextmanager
-  def _writing(self, path: str) -> BinaryIO:
+  def _writing(self, path: str, mode: str) -> IO:
     pass
 
   @abstractmethod
@@ -105,14 +105,14 @@ class LocalFSAdapter(IOAdapter):
     return path
 
   @contextmanager
-  def _reading(self, path: str) -> BinaryIO:
-    reading_file = localfs_open(path, mode='r+b')
+  def _reading(self, path: str, mode: str = "r+b") -> IO:
+    reading_file = localfs_open(path, mode=mode)
     yield reading_file
     reading_file.close()
 
   @contextmanager
-  def _writing(self, path: str) -> BinaryIO:
-    writing_file = localfs_open(path, mode='w+b')
+  def _writing(self, path: str, mode: str = "w+b") -> IO:
+    writing_file = localfs_open(path, mode=mode)
     yield writing_file
     writing_file.close()
 
@@ -167,18 +167,18 @@ class GCStorageAdapter(IOAdapter):
     return path
 
   @contextmanager
-  def _reading(self, path: str) -> BinaryIO:
+  def _reading(self, path: str, mode: str = "r+b") -> IO:
     local_path = self._download(path)
     reading_file = localfs_open(local_path, mode='r+b')
     yield reading_file
     reading_file.close()
 
   @contextmanager
-  def _writing(self, path: str) -> BinaryIO:
+  def _writing(self, path: str, mode: str = "w+b") -> IO:
     blob = storage.blob.Blob(path, self.bucket)
     local_path = join(self.tempdir, path)
     makedirs(dirname(local_path), exist_ok=True)
-    writing_file = localfs_open(local_path, mode='w+b')
+    writing_file = localfs_open(local_path, mode=mode)
     yield writing_file
     writing_file.close()
     blob.upload_from_filename(local_path)

@@ -4,6 +4,7 @@ from enum import Enum
 from typing import Optional, List
 from itertools import product
 from collections import ChainMap
+import json
 
 from flow.io_adapter import io
 from flow.task_parser import TaskParser, TaskParseError
@@ -28,6 +29,7 @@ class FileEventHandler(object):
       return self._task_specs
     paths = io.glob(TaskSpec.task_specification_glob)
     specs = [TaskParser(path).to_spec() for path in paths]
+    self._write_manifest_if_needed(specs)
     self._task_specs = specs
     logging.info("EventHandler loaded known task specs: %s", specs)
     return self._task_specs
@@ -61,7 +63,7 @@ class FileEventHandler(object):
       logging.info('No relevant tasks found for file %s', src_path)
 
   def _create_jobs(self, task_spec: TaskSpec, src_path: Optional[str] = None) -> None:
-    """Adds all new jobs for thsi task.
+    """Adds all new jobs for this task.
 
     If no `src_path` is supplied, assumes the task itself is new and adds all
     possible jobs for it.
@@ -98,6 +100,22 @@ class FileEventHandler(object):
     self.enqueuer.add(job_specs)
     logging.info("... done enqueueing! (I'm afraid this may be slow; TODO: compare timestamps.)")
 
+    def _write_manifest_if_needed(task_specs: List[TaskSpec]) -> None:
+      for task_spec in task_specs:
+        if not io.exists(task_spec.manifest_path):
+          bindings = task_spec.all_bindings()
+          keys = task_spec.output_spec.placeholders
+          assignments = sorted([binding[key] for key in keys] for binding in bindings)
+          object = {
+            "output": {
+              "template": task_spec.output_spec.path_template.template
+            },
+            "bindings": {
+              "values": assignments
+            }
+          }
+          with io.writing(task_spec.manifest_path, mode="w") as open_file:
+            json.dump(object, open_file)
 
 class JobEventHandler(object):
   """Provides `handle_job_event` which takes care of new JobSpecs coming in as JSON."""

@@ -11,6 +11,11 @@ resources:
   cpu: 1
   memory_gb: 4.0
 
+automatic_scaling:
+  max_num_instances: 200
+  cpu_utilization:
+    target_utilization: 0.15
+
 handlers:
 - url: /handle_job
   script: main.app

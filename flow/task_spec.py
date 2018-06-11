@@ -353,6 +353,9 @@ class TaskSpec(object):
     total_price_std = price_per_hour_in_usd * (cpu_time_std.total_seconds() / (60*60))
     print(f"Expecting to cost ${total_price_mean:.2f}±{total_price_std:.2f}.")
 
+  @property
+  def manifest_path(self) -> str:
+    return self.src_path.replace('.py', '.json')
 
   @property
   def input_names(self) -> List[str]:
@@ -409,6 +412,19 @@ class TaskSpec(object):
 
   def should_handle_file(self, src_path: str) -> bool:
     return self.matching_input_spec(src_path) is not None
+
+  def manifest(self, all_bindings: Optional[List[Bindings]] = None) -> Dict:
+    bindings = all_bindings or self.all_bindings()
+    keys = self.output_spec.placeholders
+    assignments = sorted([binding[key] for key in keys] for binding in bindings)
+    return {
+      "output": {
+        "template": self.output_spec.path_template.template
+      },
+      "bindings": {
+        "values": assignments
+      }
+    }
 
   def preflight(self, num_tried_jobs: int = 3) -> None:
     logging.info(f"Starting preflight, running {num_tried_jobs} jobs...")
