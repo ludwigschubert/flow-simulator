@@ -12,6 +12,7 @@ google-auth==1.4.1
 google-auth-httplib2==0.0.3
 google-cloud-datastore==1.6.0
 google-cloud-storage
+google-cloud-pubsub==0.32.1
 
 # Testing
 pytest
