@@ -5,6 +5,7 @@ decorator # TODO: why is this a library?
 lucid==0.0.8 # for io - should be spun off or heavily redesigned?
 toposort # because we're writing a real language with dependency resolution \o/
 utilspie # just for frozendict... O_o
+piexif # just for jpeg exif data writing...
 
 # Google API
 google-api-python-client==1.6.5
