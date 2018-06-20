@@ -16,42 +16,45 @@ from __future__ import absolute_import, division, print_function
 
 from setuptools import setup, find_packages
 
-version = '0.1.2'
+version = "0.1.3"
 
 setup(
-  name = 'flow-simulator',
-  packages = find_packages(exclude=[]),
-  version = version,
-  description = ('Continuous integration for research.'),
-  author = 'Ludwig Schubert',
-  author_email = 'ludwigschubert@google.com',
-  url = 'https://github.com/ludwigschubert/flow-simulator',
-  download_url = ('https://github.com/ludwigschubert/flow-simulator'
-    '/archive/v{}.tar.gz'.format(version)),
-  license = 'Apache License 2.0',
-  keywords = ['continuous integration', 'make'],
-  install_requires = [
-    'absl-py',
-    'watchdog',
-    'decorator',
-    'lucid',
-    'toposort',
-    'utilspie',
-    'google-api-python-client==1.6.5',
-    'google-auth==1.4.1',
-    'google-auth-httplib2==0.0.3',
-    'google-cloud-datastore==1.6.0',
-    'google-cloud-storage',
-  ],
-  classifiers = [
-    'Development Status :: 2 - Pre-Alpha',
-    'Intended Audience :: Science/Research',
-    'License :: OSI Approved :: Apache Software License',
-    'Natural Language :: English',
-    'Programming Language :: Python',
-    'Programming Language :: Python :: 3',
-    'Programming Language :: Python :: 3.6',
-    'Topic :: Scientific/Engineering',
-    'Topic :: Software Development :: Libraries :: Python Modules',
-  ],
+    name="flow-simulator",
+    packages=find_packages(exclude=[]),
+    version=version,
+    description=("Continuous integration for research."),
+    author="Ludwig Schubert",
+    author_email="ludwigschubert@google.com",
+    url="https://github.com/ludwigschubert/flow-simulator",
+    download_url=(
+        "https://github.com/ludwigschubert/flow-simulator"
+        "/archive/v{}.tar.gz".format(version)
+    ),
+    license="Apache License 2.0",
+    keywords=["continuous integration", "make"],
+    install_requires=[
+        "absl-py",
+        "watchdog",
+        "decorator",
+        "lucid",
+        "toposort",
+        "utilspie",
+        "piexif",
+        "google-api-python-client==1.6.5",
+        "google-auth==1.4.1",
+        "google-auth-httplib2==0.0.3",
+        "google-cloud-datastore==1.6.0",
+        "google-cloud-storage",
+    ],
+    classifiers=[
+        "Development Status :: 2 - Pre-Alpha",
+        "Intended Audience :: Science/Research",
+        "License :: OSI Approved :: Apache Software License",
+        "Natural Language :: English",
+        "Programming Language :: Python",
+        "Programming Language :: Python :: 3",
+        "Programming Language :: Python :: 3.6",
+        "Topic :: Scientific/Engineering",
+        "Topic :: Software Development :: Libraries :: Python Modules",
+    ],
 )
