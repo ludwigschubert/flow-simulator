@@ -38,11 +38,14 @@ class JobSpec(object):
     @classmethod
     def value_for_input(cls, input: object) -> object:
         if isinstance(input, str):
-            logging.debug("input is str")
+            # logging.debug("input is str")
             # TODO: here is where we would add convenience loading etc.
-            return input
+            if input.startswith("/"):
+                return AbsoluteGCSURL.from_absolute_path(AbsolutePath(input))
+            else:
+                return input
         if isinstance(input, dict):
-            logging.debug("input is dict!")
+            # logging.debug("input is dict!")
             # this signifies an aggregating input spec! let's resolve it:
             if len(input.items()) == 1:
                 logging.debug("input dict had one entry, assuming AggregatingIS")
@@ -62,7 +65,7 @@ class JobSpec(object):
                 logging.debug("input dict had multiple entries, simply setting value.")
                 return input
         if isinstance(input, (int, float, tuple, list, dict, set)):
-            logging.debug("input is value")
+            # logging.debug("input is value")
             return input
         else:
             raise NotImplementedError
