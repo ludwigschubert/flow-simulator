@@ -59,7 +59,9 @@ class JobSpec(object):
                     matches = path_template.match(path)
                     if matches:
                         key = tuple(matches[ph] for ph in placeholders)
-                        value[key] = path
+                        value[key] = AbsoluteGCSURL.from_absolute_path(
+                            AbsolutePath(path)
+                        )
                 return value
             else:
                 logging.debug("input dict had multiple entries, simply setting value.")
