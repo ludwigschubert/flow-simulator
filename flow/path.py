@@ -71,7 +71,7 @@ class AbsoluteURL(Path):
 
 
 class AbsoluteGCSURL(AbsoluteURL):
-    regex = compile(r"\w+://(\w+)/.+")
+    regex = compile(r"\w+://[^/]+/.+")
 
     # @property
     # def bucket_name(self) -> str:

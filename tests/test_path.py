@@ -46,7 +46,10 @@ def test_absolute_url_path():
 
 
 def test_absolute_gcs_url():
-    agcsu = AbsoluteGCSURL("gs://bucket/an/absolute/path.ext")
+    agcsu1 = AbsoluteGCSURL("gs://bucket/an/absolute/path.ext")
+    agcsu2 = AbsoluteGCSURL(
+        "gs://lucid-flow/data/evaluations/task=feature-visualization/model=mobilenet/layer=MobilenetV1\MobilenetV1\Conv2d_6_depthwise\Relu6/channel=0366/objective=channel/image.png"
+    )
 
 
 # dirname
