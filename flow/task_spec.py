@@ -448,11 +448,17 @@ class TaskSpec(object):
                     )
                     if relevant_bs in memoized_values:
                         values = memoized_values[relevant_bs]
-                        # logging.debug("Found cached values %s for bindings %s", list(values), bindings)
+                        logging.debug(
+                            "Found cached values %s for bindings %s",
+                            list(values),
+                            bindings,
+                        )
                     else:
                         values = input_spec.values(variable, bindings)
                         memoized_values[relevant_bs] = values
-                        # logging.debug("Memoized values %s for bindings %s", list(values), bindings)
+                        logging.debug(
+                            "Memoized values %s for bindings %s", list(values), bindings
+                        )
                     for value in values:
                         value_binding = {variable: value}
                         value_binding.update(bindings)
